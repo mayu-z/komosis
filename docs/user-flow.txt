@@ -1,0 +1,237 @@
+================================================================================
+RIFT 2026 - AUTONOMOUS CI/CD HEALING AGENT
+CANONICAL USER FLOW (IMPLEMENTATION + JUDGE VIEW)
+================================================================================
+
+Legend:
+[USER]      user action
+[SYSTEM]    gateway/queue/service action
+[AGENT]     LangGraph node action
+[DECISION]  branch condition
+[LOOP]      loop-back point
+[ERROR]     failed/quarantined path
+[SUCCESS]   terminal pass path
+
+================================================================================
+PHASE 1 - SUBMISSION
+================================================================================
+
+STEP 1 [USER]
+Open dashboard.
+
+STEP 2 [USER]
+Enter:
+- GitHub repo URL
+- Team Name
+- Leader Name
+Click run.
+
+STEP 3 [SYSTEM]
+Gateway validation:
+- repo URL valid?
+- non-empty team/leader?
+- build compliant branch name
+- build dedupe fingerprint
+
+STEP 4 [DECISION]
+Input valid?
+- NO -> show inline validation errors
+- YES -> continue
+
+STEP 5 [SYSTEM]
+Create run:
+- create `run_id`
+- enqueue BullMQ job
+- return run payload
+- frontend joins socket room `/run/:runId`
+
+================================================================================
+PHASE 2 - PRE-SCAN AND CLONE
+================================================================================
+
+STEP 6 [AGENT]
+`repo_scanner` pre-scan:
+- metadata checks
+- suspicious indicators
+- secret-pattern warnings
+
+STEP 7 [DECISION]
+Repository safe?
+- NO -> mark `quarantined`, emit alert, stop run
+- YES -> continue
+
+STEP 8 [AGENT]
+Clone repository into sandbox work dir.
+Detect project language(s).
+Prepare sandbox image plan.
+
+================================================================================
+PHASE 3 - ANALYSIS AND FAILURE DISCOVERY
+================================================================================
+
+STEP 9 [AGENT]
+`ast_analyzer`:
+- parse files
+- build dependency graph
+- static risk indicators
+
+STEP 10 [AGENT]
+`test_runner`:
+- run tests in sandbox
+- capture stdout/stderr
+- parse failing tests
+
+STEP 11 [AGENT]
+`dependency_mapper`:
+- order candidate fixes by dependency priority
+- prepare fix queue
+
+User-visible state now:
+- thought stream active
+- fixes table begins filling
+- CI timeline pending first iteration
+
+================================================================================
+PHASE 4 - FIX GENERATION LOOP
+================================================================================
+
+STEP 12 [AGENT]
+`fix_generator` (per queued failure):
+1. deterministic rule path first
+2. optional KB lookup (feature flag)
+3. model route if unresolved
+
+STEP 13 [DECISION]
+Fix candidate produced?
+- NO -> mark fix failed, continue next candidate
+- YES -> continue to critic
+
+STEP 14 [AGENT]
+Candidate generation details (if model path used):
+- gather minimal context window
+- generate patch candidate(s)
+- optional consensus path if enabled
+- run counterfactual simulation in sandbox
+
+STEP 15 [AGENT]
+`critic_agent` validation:
+- syntax/AST validity
+- regression-risk heuristics
+- confidence score in storage scale [0.0, 1.0]
+
+STEP 16 [DECISION]
+Confidence >= threshold?
+- NO -> [LOOP] return to `fix_generator` with alternate strategy
+- YES -> continue
+
+STEP 17 [AGENT]
+`commit_optimizer`:
+- batch compatible fixes
+- commit message prefix `[AI-AGENT]`
+- push to compliant branch
+- emit `fix_applied`
+
+================================================================================
+PHASE 5 - CI MONITOR LOOP
+================================================================================
+
+STEP 18 [SYSTEM]
+CI triggered on pushed branch.
+`ci_monitor` polls CI status.
+
+STEP 19 [DECISION]
+CI result?
+- PASSED -> continue to phase 6
+- FAILED and retries left -> [LOOP] return to step 12
+- REGRESSION detected -> call `rollback_agent`, then [LOOP] return to step 12
+- FAILED and no retries left -> terminal failed
+
+LOOP RULES:
+- max iterations = `AGENT_MAX_RETRIES` (default 5)
+- each loop increments `iteration_count`
+
+================================================================================
+PHASE 6 - HARDENING AND FINALIZATION
+================================================================================
+
+STEP 20 [AGENT]
+Optional `adversarial_tester` (flag):
+- generate edge-case tests around fixed paths
+- run final confidence CI pass
+
+STEP 21 [AGENT]
+`self_benchmarker`:
+- compute final score
+- compute calibration data
+- persist strategy metrics
+
+STEP 22 [SYSTEM]
+Finalize artifacts:
+- write `/outputs/{run_id}/results.json`
+- queue/generate `/outputs/{run_id}/report.pdf`
+- mark run terminal status
+
+================================================================================
+PHASE 7 - DASHBOARD FINAL STATE
+================================================================================
+
+STEP 23 [SYSTEM]
+Emit `run_complete` event.
+Dashboard locks final summary and renders:
+- final status badge
+- score breakdown
+- fixes table final state
+- CI timeline
+- artifact links
+
+================================================================================
+REQUIRED OUTPUT CONTRACTS (JUDGE-CRITICAL)
+================================================================================
+
+1. Branch format exact:
+`TEAM_NAME_LEADER_NAME_AI_Fix`
+
+2. Commit message prefix:
+`[AI-AGENT]`
+
+3. Required visible bug types:
+- LINTING
+- SYNTAX
+- LOGIC
+- TYPE_ERROR
+- IMPORT
+- INDENTATION
+
+4. Required dashboard sections:
+- Input
+- Summary card
+- Score panel
+- Fixes table
+- CI timeline
+
+5. Required run artifact:
+- `results.json`
+
+================================================================================
+EXAMPLE SUCCESS PATH (SHORT)
+================================================================================
+
+1 -> 2 -> 3 -> 4(YES) -> 5 -> 6 -> 7(YES) -> 8 -> 9 -> 10 -> 11
+-> 12 -> 13(YES) -> 14 -> 15 -> 16(YES) -> 17
+-> 18 -> 19(PASSED)
+-> 20(optional) -> 21 -> 22 -> 23
+
+================================================================================
+EXAMPLE FAILURE PATH (SHORT)
+================================================================================
+
+...
+18 -> 19(FAILED + retries left) -> LOOP to 12
+...
+19(REGRESSION) -> rollback -> LOOP to 12
+...
+19(FAILED + no retries) -> terminal FAILED -> 22 -> 23
+
+================================================================================
+END OF USER FLOW SPEC
+================================================================================

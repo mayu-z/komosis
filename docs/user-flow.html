@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Flow - Autonomous CI/CD Healing Agent</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #0b1020; color: #e6edf7; }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1, h2 { margin: 0 0 12px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 20px; margin-top: 28px; }
+    p { color: #b7c2d9; line-height: 1.5; }
+    .card { background: #131a2e; border: 1px solid #2a3558; border-radius: 12px; padding: 16px; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #2a3558; padding: 10px; text-align: left; }
+    th { background: #1a2340; }
+    code { background: #1a2340; padding: 2px 6px; border-radius: 6px; }
+    .ok { color: #4ade80; }
+    .warn { color: #fbbf24; }
+    .bad { color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>User Flow Specification</h1>
+    <p>Canonical source: <code>user-flow.txt</code>. This page is a visual summary and must stay aligned with the text spec.</p>
+
+    <div class="card">
+      <h2>Phases</h2>
+      <table>
+        <thead>
+          <tr><th>Phase</th><th>Name</th><th>Goal</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Submission</td><td>Validate input, enqueue run, open socket room</td></tr>
+          <tr><td>2</td><td>Pre-scan and Clone</td><td>Safety checks, quarantine unsafe repos, clone safe repos</td></tr>
+          <tr><td>3</td><td>Analysis</td><td>Parse code, run tests, detect failures</td></tr>
+          <tr><td>4</td><td>Fix Loop</td><td>Generate, validate, commit fixes</td></tr>
+          <tr><td>5</td><td>CI Loop</td><td>Monitor CI, retry and rollback when required</td></tr>
+          <tr><td>6</td><td>Hardening</td><td>Finalize scoring and artifacts</td></tr>
+          <tr><td>7</td><td>Completion</td><td>Emit <code>run_complete</code> and lock dashboard state</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Critical Decisions</h2>
+      <table>
+        <thead>
+          <tr><th>Decision</th><th>YES Path</th><th>NO Path</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Input valid?</td><td>enqueue run</td><td>inline error</td></tr>
+          <tr><td>Repository safe?</td><td>clone repo</td><td class="bad">quarantine</td></tr>
+          <tr><td>Fix candidate valid?</td><td>critic validation</td><td>mark failed + continue</td></tr>
+          <tr><td>Confidence >= threshold?</td><td>commit and push</td><td class="warn">loop to fix generator</td></tr>
+          <tr><td>CI passed?</td><td class="ok">proceed to completion</td><td class="warn">retry/rollback loop</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Judge-Critical Contracts</h2>
+      <ul>
+        <li>Branch format: <code>TEAM_NAME_LEADER_NAME_AI_Fix</code></li>
+        <li>Commit prefix: <code>[AI-AGENT]</code></li>
+        <li>Primary bug types: <code>LINTING,SYNTAX,LOGIC,TYPE_ERROR,IMPORT,INDENTATION</code></li>
+        <li>Retry limit default: <code>5</code></li>
+        <li>Required artifact: <code>results.json</code></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Reference</h2>
+      <p>For full implementation detail, use:</p>
+      <ul>
+        <li><code>user-flow.txt</code> (canonical flow)</li>
+        <li><code>SOURCE_OF_TRUTH.md</code> (cross-doc contract)</li>
+        <li><code>API_CONTRACTS.md</code> (payload schemas)</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

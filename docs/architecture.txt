@@ -1,0 +1,347 @@
+================================================================================
+RIFT 2026 - AUTONOMOUS CI/CD HEALING AGENT
+SYSTEM ARCHITECTURE SPECIFICATION (IMPLEMENTATION GRADE)
+================================================================================
+
+Purpose:
+- Define deployable architecture and exact service contracts.
+- Stay fully aligned with track requirements.
+- Preserve optional advanced features behind flags.
+
+Canonical reference:
+- SOURCE_OF_TRUTH.md
+
+================================================================================
+1. LAYER MODEL
+================================================================================
+
+Layer A: React Dashboard (Frontend)
+Layer B: API Gateway (Express + Socket.io)
+Layer C: Job Queue (BullMQ + Redis)
+Layer D: Agent Orchestrator (FastAPI + LangGraph)
+Layer E: Execution Sandbox (Docker)
+Layer F: Persistence (PostgreSQL + Redis + filesystem)
+Layer G: Integrations (GitHub API + LLM APIs)
+
+================================================================================
+2. SERVICE BREAKDOWN
+================================================================================
+
+2.1 Frontend Service
+- Stack: React + Vite
+- Required pages:
+  1) Main dashboard
+  2) Replay view
+  3) Run history (optional)
+- Required widgets:
+  - Input Section
+  - Run Summary
+  - Score Breakdown
+  - Fixes Table
+  - CI Timeline
+- Optional widgets (feature flags):
+  - Causal Incident Graph
+  - Replay timeline controls
+  - Provenance panel
+
+2.2 Gateway Service
+- Stack: Node.js + Express + Socket.io + BullMQ client
+- Responsibility:
+  - Public API
+  - Input validation
+  - Branch-name formatting
+  - Job enqueue
+  - WebSocket fan-out
+  - Artifact serving
+
+2.3 Worker Service
+- Stack: Node.js BullMQ worker
+- Responsibility:
+  - Consume `agent-runs` jobs
+  - Call FastAPI `POST /agent/start`
+  - Track worker-side failures and retries
+
+2.4 Agent Service
+- Stack: Python FastAPI + LangGraph
+- Responsibility:
+  - Execute graph nodes
+  - Emit trace/thought events
+  - Persist run data
+  - Perform retry loop logic
+
+2.5 Sandbox Runtime
+- Stack: Docker engine + language images
+- Responsibility:
+  - Secure code execution
+  - Test execution
+  - Patch simulation
+
+================================================================================
+3. LANGGRAPH NODES (CANONICAL)
+================================================================================
+
+Node order and loops:
+1. `repo_scanner`
+2. `ast_analyzer`
+3. `test_runner`
+4. `dependency_mapper`
+5. `fix_generator`
+6. `critic_agent`
+7. `commit_optimizer`
+8. `ci_monitor`
+9. `rollback_agent` (conditional)
+10. `adversarial_tester` (flag)
+11. `self_benchmarker`
+
+Loop rules:
+- Low confidence: `critic_agent -> fix_generator`
+- CI failed with retries: `ci_monitor -> fix_generator`
+- Regression: `ci_monitor -> rollback_agent -> fix_generator`
+- Stop when `iteration_count >= AGENT_MAX_RETRIES`
+
+================================================================================
+4. CORE AGENT STATE CONTRACT
+================================================================================
+
+AgentState required fields:
+- `run_id: str`
+- `repo_url: str`
+- `team_name: str`
+- `leader_name: str`
+- `branch_name: str`
+- `status: str`
+- `iteration_count: int`
+- `max_iterations: int`
+- `failures: list`
+- `fixes: list`
+- `score: dict`
+- `cost_tracker: dict`
+- `confidence_scores: dict`
+- `trace_index: int`
+- `quarantine_flag: bool`
+- `start_time: float`
+
+Optional fields:
+- `advanced_context: dict`
+- `causal_graph: dict`
+- `provenance: list`
+
+================================================================================
+5. API CONTRACTS (PUBLIC)
+================================================================================
+
+5.1 POST /run-agent
+- Validate payload fields.
+- Build branch name with canonical formatter.
+- Create dedupe fingerprint.
+- Enqueue job.
+- Return run metadata.
+
+5.2 GET /results/:runId
+- Return final `results.json` content.
+
+5.3 GET /report/:runId
+- Stream generated PDF.
+
+5.4 GET /replay/:runId
+- Return ordered execution trace.
+
+5.5 GET /agent/status/:runId
+- Return status, current node, iteration counters.
+
+5.6 POST /agent/query
+- Post-run Q/A over stored trace.
+
+5.7 GET /health
+- Return service, queue, db health summary.
+
+================================================================================
+6. SOCKET CONTRACTS
+================================================================================
+
+Room:
+- `/run/:runId`
+
+Events:
+1. `thought_event`
+   payload: `{ run_id, node, message, step_index, timestamp }`
+
+2. `fix_applied`
+   payload: `{ run_id, file, bug_type, line, status, commit_sha, confidence }`
+
+3. `ci_update`
+   payload: `{ run_id, iteration, status, regression, timestamp }`
+
+4. `telemetry_tick`
+   payload: `{ run_id, cpu_pct, mem_mb, container_id, timestamp }`
+
+5. `run_complete`
+   payload: `{ run_id, final_status, score, total_time_secs, pdf_url }`
+
+================================================================================
+7. BRANCH AND COMMIT POLICY
+================================================================================
+
+7.1 Branch formatter
+Input: `team_name`, `leader_name`
+Output: `TEAM_NAME_LEADER_NAME_AI_Fix`
+
+Implementation rules:
+- Uppercase team and leader tokens.
+- Replace whitespace with `_`.
+- Drop non-alphanumeric except `_`.
+- Append `_AI_Fix`.
+
+7.2 Commit policy
+- Every automated commit message starts with `[AI-AGENT]`.
+- Protected branches denied (`main`, `master`).
+
+================================================================================
+8. SANDBOX POLICY
+================================================================================
+
+Required controls:
+1. `--network none`
+2. Read-only base image plus writable temp work dir.
+3. CPU and memory limits.
+4. Per-command timeout.
+5. Container destroyed after node/run completion.
+
+Language containers:
+- Python
+- Node
+- Java (optional)
+- Go (optional)
+- Rust (optional)
+
+================================================================================
+9. RETRY, ROLLBACK, AND STOP CONDITIONS
+================================================================================
+
+Retry configuration:
+- `AGENT_MAX_RETRIES` default: 5
+- Backoff: exponential with jitter
+
+Rollback policy:
+- On regression, revert offending commit only.
+- Log rollback event and continue loop.
+
+Terminal states:
+- `passed`
+- `failed`
+- `quarantined`
+
+================================================================================
+10. ACCURACY CONTROL PATH
+================================================================================
+
+To maximize test-case accuracy:
+1. Parse failures with deterministic adapters first.
+2. Map to required bug taxonomy.
+3. Keep line numbers from authoritative parser output.
+4. Use exact output formatter before writing results.
+5. Validate with schema + golden tests.
+
+================================================================================
+11. OPTIONAL ADVANCED FEATURES (FLAGGED)
+================================================================================
+
+Feature flags:
+- `ENABLE_KB_LOOKUP`
+- `ENABLE_SPECULATIVE_BRANCHES`
+- `ENABLE_ADVERSARIAL_TESTS`
+- `ENABLE_CAUSAL_GRAPH`
+- `ENABLE_PROVENANCE_PASS`
+
+Rules:
+- Disabled by default if they can threaten scoring stability.
+- Must not alter required table format or branch/commit compliance.
+
+================================================================================
+12. DEPLOYMENT TOPOLOGY
+================================================================================
+
+Recommended deploy split:
+- Frontend: Vercel
+- Gateway + worker: Railway/Fly/Render
+- Agent service: Railway/Fly/Render
+- PostgreSQL: managed
+- Redis: managed
+
+Operational notes:
+- Isolate worker from public ingress.
+- Add health probes to all services.
+- Add centralized logs with run_id correlation.
+
+================================================================================
+13. OBSERVABILITY
+================================================================================
+
+Minimum logs per request/run:
+- `run_id`, `fingerprint`, `team_name`, `repo_url`
+- node transitions
+- fix attempts and statuses
+- ci iteration results
+- commit shas and rollback shas
+- final score/time
+
+Minimum metrics:
+- run success rate
+- p95 run duration
+- average retries
+- regression frequency
+- tokens/cost per run
+
+================================================================================
+14. FAILURE MODES AND MITIGATIONS
+================================================================================
+
+1. LLM outage
+- fallback model routing
+- retry with capped attempts
+
+2. GitHub API rate limit
+- queue-based throttling
+- cached polling intervals
+
+3. Sandbox timeout
+- fail node gracefully
+- emit actionable trace event
+
+4. Queue backlog
+- autoscale worker count
+- enforce submission rate limit
+
+5. DB contention
+- bounded writes per event type
+- async trace flush batching
+
+================================================================================
+15. IMPLEMENTATION ORDER (COPILOT-FRIENDLY)
+================================================================================
+
+Phase 1: Compliance core
+- API input validation
+- branch formatter
+- commit policy checks
+- results schema
+
+Phase 2: Deterministic fix loop
+- parser adapters
+- bug taxonomy normalizer
+- fix generator/critic loop
+- CI monitor loop
+
+Phase 3: Dashboard required views
+- required 5 judge sections
+- socket updates
+- score panel
+
+Phase 4: Advanced flags
+- causal graph
+- provenance panel
+- optional speculative branches
+
+================================================================================
+END OF ARCHITECTURE SPEC
+================================================================================

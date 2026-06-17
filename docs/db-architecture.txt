@@ -1,0 +1,291 @@
+================================================================================
+RIFT 2026 - AUTONOMOUS CI/CD HEALING AGENT
+DATABASE AND STORAGE ARCHITECTURE (IMPLEMENTATION GRADE)
+================================================================================
+
+Canonical reference: SOURCE_OF_TRUTH.md
+
+Stores:
+1. PostgreSQL (system of record)
+2. Redis (queue + ephemeral runtime cache)
+3. Filesystem (artifacts)
+4. Optional vector store (feature flag)
+
+================================================================================
+1) POSTGRESQL SCHEMA
+================================================================================
+
+Conventions:
+- Primary key type: UUID
+- Time type: TIMESTAMPTZ
+- snake_case naming
+- referential integrity enabled
+
+------------------------------------------------------------------------------
+TABLE runs
+------------------------------------------------------------------------------
+Purpose: one row per run
+
+Columns:
+- run_id UUID PK
+- fingerprint TEXT NOT NULL INDEX
+- repo_url TEXT NOT NULL
+- team_name VARCHAR(120) NOT NULL
+- leader_name VARCHAR(120) NOT NULL
+- branch_name VARCHAR(200) NOT NULL
+- status TEXT NOT NULL CHECK (status IN ('queued','running','passed','failed','quarantined'))
+- start_time TIMESTAMPTZ NOT NULL
+- end_time TIMESTAMPTZ NULL
+- total_time_secs DOUBLE PRECISION NULL
+- base_score INT NULL
+- speed_bonus INT NULL
+- efficiency_penalty INT NULL
+- final_score INT NULL
+- total_failures INT NULL
+- total_fixes INT NULL
+- total_commits INT NULL
+- total_iterations INT NULL
+- total_llm_cost_usd DOUBLE PRECISION NULL
+- quarantine_reason TEXT NULL
+- created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+Indexes:
+- idx_runs_status(status)
+- idx_runs_created_at(created_at DESC)
+- idx_runs_fingerprint(fingerprint)
+
+------------------------------------------------------------------------------
+TABLE fixes
+------------------------------------------------------------------------------
+Purpose: one row per fix attempt/result
+
+Columns:
+- fix_id UUID PK
+- run_id UUID NOT NULL REFERENCES runs(run_id)
+- file_path TEXT NOT NULL
+- bug_type TEXT NOT NULL CHECK (bug_type IN ('LINTING','SYNTAX','LOGIC','TYPE_ERROR','IMPORT','INDENTATION'))
+- line_number INT NOT NULL
+- line_end INT NULL
+- description TEXT NOT NULL
+- fix_description TEXT NOT NULL
+- original_code TEXT NULL
+- fixed_code TEXT NULL
+- status TEXT NOT NULL CHECK (status IN ('applied','failed','rolled_back','skipped'))
+- commit_sha VARCHAR(40) NULL
+- commit_message TEXT NULL
+- confidence_score DOUBLE PRECISION NULL CHECK (confidence_score >= 0.0 AND confidence_score <= 1.0)
+- model_used VARCHAR(60) NULL
+- consensus_votes JSONB NULL
+- kb_match BOOLEAN NULL
+- causal_commit_sha VARCHAR(40) NULL
+- causal_explanation TEXT NULL
+- token_cost_usd DOUBLE PRECISION NULL
+- applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+Indexes:
+- idx_fixes_run_id(run_id)
+- idx_fixes_bug_status(bug_type,status)
+- idx_fixes_kb_match_true(kb_match) WHERE kb_match = true
+
+------------------------------------------------------------------------------
+TABLE ci_events
+------------------------------------------------------------------------------
+Purpose: one row per CI iteration
+
+Columns:
+- event_id UUID PK
+- run_id UUID NOT NULL REFERENCES runs(run_id)
+- iteration INT NOT NULL
+- github_run_id BIGINT NULL
+- status TEXT NOT NULL CHECK (status IN ('pending','running','passed','failed'))
+- failures_before INT NULL
+- failures_after INT NULL
+- new_failures TEXT[] NULL
+- regression_detected BOOLEAN NOT NULL DEFAULT false
+- rollback_triggered BOOLEAN NOT NULL DEFAULT false
+- rollback_commit_sha VARCHAR(40) NULL
+- duration_secs DOUBLE PRECISION NULL
+- triggered_at TIMESTAMPTZ NOT NULL
+- completed_at TIMESTAMPTZ NULL
+
+Indexes:
+- idx_ci_events_run_iter(run_id, iteration)
+
+------------------------------------------------------------------------------
+TABLE execution_traces
+------------------------------------------------------------------------------
+Purpose: authoritative replay stream
+
+Columns:
+- trace_id UUID PK
+- run_id UUID NOT NULL REFERENCES runs(run_id)
+- step_index INT NOT NULL
+- agent_node VARCHAR(60) NOT NULL
+- action_type VARCHAR(60) NOT NULL
+- action_label TEXT NOT NULL
+- payload JSONB NULL
+- thought_text TEXT NULL
+- related_fix_id UUID NULL REFERENCES fixes(fix_id)
+- related_ci_event_id UUID NULL REFERENCES ci_events(event_id)
+- emitted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+Indexes:
+- idx_traces_run_step(run_id, step_index)
+
+------------------------------------------------------------------------------
+TABLE strategy_weights
+------------------------------------------------------------------------------
+Purpose: adaptive strategy metadata
+
+Columns:
+- weight_id UUID PK
+- bug_type TEXT UNIQUE NOT NULL
+- strategy_rule_first DOUBLE PRECISION NOT NULL
+- strategy_llm_single DOUBLE PRECISION NOT NULL
+- strategy_llm_consensus DOUBLE PRECISION NOT NULL
+- strategy_kb_lookup DOUBLE PRECISION NOT NULL
+- total_attempts INT NOT NULL
+- total_successes INT NOT NULL
+- generation INT NOT NULL
+- last_evolved_at TIMESTAMPTZ NULL
+
+------------------------------------------------------------------------------
+TABLE benchmark_scores
+------------------------------------------------------------------------------
+Purpose: score breakdown evidence per run
+
+Columns:
+- bench_id UUID PK
+- run_id UUID NOT NULL REFERENCES runs(run_id)
+- criterion VARCHAR(80) NOT NULL
+- max_points INT NOT NULL
+- predicted_score INT NOT NULL
+- actual_score INT NULL
+- calibration_gap INT NULL
+- reasoning TEXT NULL
+- scored_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+Indexes:
+- idx_benchmark_run_criterion(run_id, criterion)
+
+================================================================================
+2) RECOMMENDED SQL DDL (STARTER)
+================================================================================
+
+Use `SCHEMA.sql` for executable DDL. Keep this doc as architecture-level contract.
+
+================================================================================
+3) REDIS KEYSPACE DESIGN
+================================================================================
+
+3.1 BullMQ-managed keys
+- `bull:agent-runs:*`
+- `bull:pdf-export:*`
+
+3.2 Runtime state cache (TTL 2h)
+- `run:{run_id}:status`
+- `run:{run_id}:current_node`
+- `run:{run_id}:iteration`
+- `run:{run_id}:score`
+- `run:{run_id}:commit_count`
+- `run:{run_id}:cost_usd`
+- `run:{run_id}:telemetry` (hash)
+
+3.3 Event buffer (TTL 30m)
+- `events:{run_id}` (list)
+- `events:{run_id}:count`
+
+3.4 Dedupe and locks
+- `run:fingerprint:{fingerprint}` (active run mapping)
+- `lock:fingerprint:{fingerprint}` (short lock)
+
+3.5 Session/rate limit
+- `session:{session_id}`
+- `ratelimit:{ip}`
+
+================================================================================
+4) FILESYSTEM ARTIFACTS
+================================================================================
+
+Per run directory:
+- `/outputs/{run_id}/results.json`
+- `/outputs/{run_id}/report.pdf`
+
+Write order:
+1. write results JSON after terminal status
+2. generate PDF from terminal state asynchronously
+
+================================================================================
+5) CANONICAL results.json SCHEMA
+================================================================================
+
+Required top-level fields:
+- `run_id` string
+- `repo_url` string
+- `team_name` string
+- `leader_name` string
+- `branch_name` string
+- `final_status` enum: `PASSED | FAILED | QUARANTINED`
+- `total_failures` number
+- `total_fixes` number
+- `total_time_secs` number
+- `score` object
+- `fixes` array
+- `ci_log` array
+
+`score` object:
+- `base`
+- `speed_bonus`
+- `efficiency_penalty`
+- `total`
+
+`fixes[]` minimum fields:
+- `file`
+- `bug_type`
+- `line_number`
+- `commit_message`
+- `status`
+
+`ci_log[]` minimum fields:
+- `iteration`
+- `status`
+- `timestamp`
+- `regression`
+
+================================================================================
+6) OPTIONAL VECTOR STORE CONTRACT (FEATURE FLAG)
+================================================================================
+
+Collection: `fix_patterns`
+- id: `fix_id`
+- document: derived fix context
+- metadata: bug_type, language, model_used, confidence_score
+
+Rule:
+- Only CI-confirmed successful fixes are indexed.
+- Redact secrets before indexing.
+
+================================================================================
+7) CONSISTENCY RULES
+================================================================================
+
+1. `execution_traces` is authoritative for replay and NL interrogation.
+2. `confidence_score` stored in [0.0,1.0], UI renders percent.
+3. Required bug types in primary table must match track list.
+4. Run dedupe uses fingerprint, not run_id.
+5. `results.json` must be generated for every terminal run.
+
+================================================================================
+8) DATA RETENTION POLICY
+================================================================================
+
+Recommended defaults:
+- PostgreSQL: retain run records for hackathon window, then archive.
+- Redis runtime keys: 2h TTL.
+- Redis event buffer: 30m TTL.
+- Artifact files: persist at least through judging period.
+- Optional vector store: only if policy-approved and redaction-enabled.
+
+================================================================================
+END OF DATABASE ARCHITECTURE SPEC
+================================================================================
