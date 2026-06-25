@@ -1,5 +1,5 @@
 """
-Acceptance tests for the RIFT Agent service.
+Acceptance tests for the Komosis Agent Service.
 
 Covers ACCEPTANCE_TESTS.md §2 (bug classification), §3 (score formula parity),
 §4 (API endpoints), §8 (results.json shape), §9 (score computation).
@@ -160,9 +160,9 @@ class TestBugClassification:
 VALID_START_PAYLOAD: dict[str, Any] = {
     "run_id": "run_acc_test_01",
     "repo_url": "https://github.com/org/repo",
-    "team_name": "RIFT ORGANISERS",
+    "team_name": "Test Team",
     "leader_name": "Saiyam Kumar",
-    "branch_name": "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+    "branch_name": "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
     "max_iterations": 5,
     "feature_flags": {
         "ENABLE_KB_LOOKUP": True,
@@ -277,9 +277,9 @@ class TestResultsJsonShape:
         return {
             "run_id": "run_shape_01",
             "repo_url": "https://github.com/org/repo",
-            "team_name": "RIFT ORGANISERS",
+            "team_name": "Test Team",
             "leader_name": "Saiyam Kumar",
-            "branch_name": "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+            "branch_name": "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
             "final_status": "PASSED",
             "total_failures": 1,
             "total_fixes": 1,
@@ -364,9 +364,9 @@ class TestReportPdfGeneration:
         return {
             "run_id": "run_pdf_01",
             "repo_url": "https://github.com/org/repo",
-            "team_name": "RIFT ORGANISERS",
+            "team_name": "Test Team",
             "leader_name": "Saiyam Kumar",
-            "branch_name": "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+            "branch_name": "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
             "final_status": "PASSED",
             "total_failures": 2,
             "total_fixes": 2,
@@ -438,7 +438,7 @@ class TestReportPdfGeneration:
         generate_report_pdf(results, pdf_path)
 
         content = pdf_path.read_bytes().decode("latin-1")
-        assert "run_pdf_03" in content or "RIFT" in content
+        assert "run_pdf_03" in content or "Komosis" in content
 
     def test_pdf_contains_team_info(self, tmp_path: Path) -> None:
         from app.report import generate_report_pdf
@@ -448,7 +448,7 @@ class TestReportPdfGeneration:
         generate_report_pdf(results, pdf_path)
 
         content = pdf_path.read_bytes().decode("latin-1")
-        assert "RIFT" in content
+        assert "Komosis" in content
 
     def test_pdf_with_empty_fixes(self, tmp_path: Path) -> None:
         from app.report import generate_report_pdf

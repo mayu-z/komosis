@@ -27,7 +27,7 @@ from ...events import emit_run_complete, emit_thought
 from ...report import generate_report_pdf
 from ..state import AgentState, ScoreBreakdown
 
-logger = logging.getLogger("rift.node.scorer")
+logger = logging.getLogger("komosis.node.scorer")
 
 
 def _public_ci_status(status: str) -> str:

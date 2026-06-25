@@ -23,7 +23,7 @@ COPY backend/gateway/tsconfig.json ./backend/gateway/tsconfig.json
 COPY backend/gateway/src ./backend/gateway/src
 
 # Build
-RUN pnpm --filter @rift/contracts run build && pnpm --filter @rift/gateway run build
+RUN pnpm --filter @komosis/contracts run build && pnpm --filter @komosis/gateway run build
 
 # ── Runtime stage ───────────────────────────────────────
 FROM node:20-alpine AS runtime

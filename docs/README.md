@@ -1,6 +1,6 @@
 # Autonomous CI/CD Healing Agent
 
-RIFT 2026 Hackathon
+Komosis
 Track: AI/ML, DevOps Automation, Agentic Systems
 
 This repository contains a production-style autonomous CI/CD healing system and judge-facing React dashboard.
@@ -105,7 +105,7 @@ Request:
 ```json
 {
   "repo_url": "https://github.com/org/repo",
-  "team_name": "RIFT ORGANISERS",
+  "team_name": "Test Team",
   "leader_name": "Saiyam Kumar"
 }
 ```
@@ -114,7 +114,7 @@ Response:
 ```json
 {
   "run_id": "run_abc123",
-  "branch_name": "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+  "branch_name": "test_team_fix_branch",
   "status": "queued",
   "socket_room": "/run/run_abc123"
 }
@@ -241,7 +241,7 @@ OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 GOOGLE_API_KEY=
 GITHUB_PAT=
-DATABASE_URL=postgresql://user:pass@localhost:5432/rift_agent
+DATABASE_URL=postgresql://user:pass@localhost:5432/komosis
 REDIS_URL=redis://localhost:6379
 OUTPUT_DIR=/outputs
 AGENT_MAX_RETRIES=5

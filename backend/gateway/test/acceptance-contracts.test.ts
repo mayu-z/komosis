@@ -54,9 +54,9 @@ const CANONICAL_RUN_COMPLETE: Record<string, unknown> = {
 const CANONICAL_RESULTS: Record<string, unknown> = {
   run_id: "run_abc123",
   repo_url: "https://github.com/org/repo",
-  team_name: "RIFT ORGANISERS",
+  team_name: "Test Team",
   leader_name: "Saiyam Kumar",
-  branch_name: "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+  branch_name: "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
   final_status: "PASSED",
   total_failures: 2,
   total_fixes: 2,
@@ -78,13 +78,13 @@ const CANONICAL_RESULTS: Record<string, unknown> = {
 
 const CANONICAL_RUN_AGENT_REQUEST: Record<string, unknown> = {
   repo_url: "https://github.com/org/repo",
-  team_name: "RIFT ORGANISERS",
+  team_name: "Test Team",
   leader_name: "Saiyam Kumar",
 };
 
 const CANONICAL_RUN_AGENT_RESPONSE: Record<string, unknown> = {
   run_id: "run_abc123",
-  branch_name: "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+  branch_name: "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
   status: "queued",
   socket_room: "/run/run_abc123",
   fingerprint: "3dc49b0aa7a4648ceee63780f2d0b1477f0f5b8cd86d5914fa66f4ec9baf1910",

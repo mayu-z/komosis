@@ -12,7 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ResultsJson } from "@rift/contracts";
+import type { ResultsJson } from "@komosis/contracts";
 import { writeResultsArtifact } from "../src/artifacts.js";
 
 let outputsDir = "";
@@ -76,7 +76,7 @@ function validResults(runId: string): ResultsJson {
 }
 
 beforeEach(async () => {
-  outputsDir = await mkdtemp(path.join(os.tmpdir(), "rift-e2e-"));
+  outputsDir = await mkdtemp(path.join(os.tmpdir(), "komosis-e2e-"));
   process.env.OUTPUTS_DIR = outputsDir;
   vi.resetModules();
   ({ createApp } = await import("../src/app.js"));

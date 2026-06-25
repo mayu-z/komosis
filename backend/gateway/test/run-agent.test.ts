@@ -19,13 +19,13 @@ describe("POST /run-agent", () => {
       .post("/run-agent")
       .send({
         repo_url: "https://github.com/org/repo",
-        team_name: "RIFT ORGANISERS",
+        team_name: "Test Team",
         leader_name: "Saiyam Kumar"
       });
 
     expect(response.status).toBe(202);
     expect(response.body.status).toBe("queued");
-    expect(response.body.branch_name).toBe("RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix");
+    expect(response.body.branch_name).toBe("TEST_TEAM_SAIYAM_KUMAR_AI_Fix");
     expect(response.body.socket_room).toMatch(/^\/run\//);
     expect(response.body.fingerprint).toMatch(/^[a-f0-9]{64}$/);
 
@@ -35,7 +35,7 @@ describe("POST /run-agent", () => {
   it("returns 409 for duplicate active submission fingerprint", async () => {
     const payload = {
       repo_url: "https://github.com/org/repo",
-      team_name: "RIFT ORGANISERS",
+      team_name: "Test Team",
       leader_name: "Saiyam Kumar"
     };
 

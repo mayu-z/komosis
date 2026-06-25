@@ -3,8 +3,8 @@ import { formatBranchName } from "../src/branch.js";
 
 describe("formatBranchName", () => {
   it("formats canonical sample correctly", () => {
-    expect(formatBranchName("RIFT ORGANISERS", "Saiyam Kumar")).toBe(
-      "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix"
+    expect(formatBranchName("Test Team", "Saiyam Kumar")).toBe(
+      "TEST_TEAM_SAIYAM_KUMAR_AI_Fix"
     );
   });
 

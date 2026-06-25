@@ -1,6 +1,6 @@
 # SOURCE OF TRUTH
 
-This file is the canonical contract for the RIFT 2026 Autonomous CI/CD Healing Agent.
+This file is the canonical contract for the Komosis — Autonomous CI/CD Healing Agent.
 All other docs must conform to this file.
 
 ## 1) Mission and Scope

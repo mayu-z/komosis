@@ -1,6 +1,6 @@
 # Services
 
-Reserved for auxiliary services that are not part of the core hackathon scoring path.
+Reserved for auxiliary services that are not part of the core scoring path.
 
 Examples:
 - CI adapters

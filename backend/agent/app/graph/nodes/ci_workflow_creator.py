@@ -24,7 +24,7 @@ from ...events import emit_thought
 from ...llm import get_llm, has_llm_keys
 from ..state import AgentState
 
-logger = logging.getLogger("rift.node.ci_workflow_creator")
+logger = logging.getLogger("komosis.node.ci_workflow_creator")
 
 
 # ── Helpers ─────────────────────────────────────────────────
@@ -170,8 +170,8 @@ def _commit_and_push_workflow(
 
     # Configure git user
     with repo.config_writer("repository") as cw:
-        cw.set_value("user", "name", "RIFT AI Agent")
-        cw.set_value("user", "email", "rift-agent@noreply.github.com")
+        cw.set_value("user", "name", "Komosis Agent")
+        cw.set_value("user", "email", "komosis-agent@noreply.github.com")
 
     # Ensure we're on the right branch
     if repo.active_branch.name != branch_name:

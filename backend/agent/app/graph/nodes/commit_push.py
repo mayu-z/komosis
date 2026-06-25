@@ -19,7 +19,7 @@ from ...db import insert_trace
 from ...events import emit_thought
 from ..state import AgentState, FixRecord
 
-logger = logging.getLogger("rift.node.commit_push")
+logger = logging.getLogger("komosis.node.commit_push")
 
 _PROTECTED_BRANCHES = {"main", "master", "develop", "release"}
 
@@ -88,8 +88,8 @@ async def commit_push(state: AgentState) -> AgentState:
 
         # Configure git user for commits inside this repo
         with repo.config_writer("repository") as cw:
-            cw.set_value("user", "name", "RIFT AI Agent")
-            cw.set_value("user", "email", "rift-agent@noreply.github.com")
+            cw.set_value("user", "name", "Komosis Agent")
+            cw.set_value("user", "email", "komosis-agent@noreply.github.com")
 
         # Ensure we're on the right branch
         if repo.active_branch.name != branch_name:

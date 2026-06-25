@@ -1,5 +1,5 @@
 {
-  "name": "rift-autonomous-healer",
+  "name": "komosis",
   "private": true,
   "version": "0.1.0",
   "workspaces": [
@@ -8,14 +8,14 @@
     "packages/contracts"
   ],
   "scripts": {
-    "build": "npm run build -w @rift/contracts && npm run build -w @rift/gateway && npm run build -w @rift/worker",
-    "typecheck": "npm run typecheck -w @rift/contracts && npm run typecheck -w @rift/gateway && npm run typecheck -w @rift/worker",
-    "test:gateway": "npm run test -w @rift/gateway",
+    "build": "npm run build -w @komosis/contracts && npm run build -w @komosis/gateway && npm run build -w @komosis/worker",
+    "typecheck": "npm run typecheck -w @komosis/contracts && npm run typecheck -w @komosis/gateway && npm run typecheck -w @komosis/worker",
+    "test:gateway": "npm run test -w @komosis/gateway",
     "test:agent": "cd backend/agent && pytest -q",
-    "test": "npm run test -w @rift/gateway",
-    "test:contracts": "npm run test:contracts -w @rift/gateway",
-    "dev:gateway": "npm run dev -w @rift/gateway",
-    "dev:worker": "npm run dev -w @rift/worker"
+    "test": "npm run test -w @komosis/gateway",
+    "test:contracts": "npm run test:contracts -w @komosis/gateway",
+    "dev:gateway": "npm run dev -w @komosis/gateway",
+    "dev:worker": "npm run dev -w @komosis/worker"
   },
   "engines": {
     "node": ">=20"

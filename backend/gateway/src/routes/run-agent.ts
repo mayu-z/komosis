@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Router, type Router as RouterType } from "express";
-import type { RunAgentDuplicateResponse, RunAgentRequest, RunAgentResponse } from "@rift/contracts";
+import type { RunAgentDuplicateResponse, RunAgentRequest, RunAgentResponse } from "@komosis/contracts";
 import { formatBranchName } from "../branch.js";
 import { submissionFingerprint } from "../fingerprint.js";
 import { schemaValidators, validateBody } from "../validators.js";

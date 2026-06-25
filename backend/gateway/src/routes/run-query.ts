@@ -184,8 +184,12 @@ runQueryRouter.get("/report/:runId", async (req, res) => {
 
   try {
     assertRunId(runId);
+  } catch {
+    return res.status(400).json(buildErrorEnvelope("INVALID_INPUT", "Invalid run_id"));
+  }
 
-    // Try local disk first
+  // Try local disk first
+  try {
     const hasReport = await hasReportArtifact(config.outputsDir, runId);
     if (hasReport) {
       return res.sendFile(reportArtifactPath(config.outputsDir, runId), {
@@ -195,8 +199,12 @@ runQueryRouter.get("/report/:runId", async (req, res) => {
         }
       });
     }
+  } catch {
+    // Ignore and fall through to DB/404
+  }
 
-    // DB fallback — Railway has no shared volumes between services
+  // DB fallback — Railway has no shared volumes between services
+  try {
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT report_pdf FROM runs WHERE run_id = $1 LIMIT 1",
@@ -213,11 +221,11 @@ runQueryRouter.get("/report/:runId", async (req, res) => {
       });
       return res.send(pdfBuffer);
     }
-
-    return res.status(404).json(buildErrorEnvelope("NOT_FOUND", "report.pdf not found"));
   } catch {
-    return res.status(400).json(buildErrorEnvelope("INVALID_INPUT", "Invalid run_id"));
+    // Ignore and fall through to 404
   }
+
+  return res.status(404).json(buildErrorEnvelope("NOT_FOUND", "report.pdf not found"));
 });
 
 // ── GET /replay/:runId — execution trace replay ────────────

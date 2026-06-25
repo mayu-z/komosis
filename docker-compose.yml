@@ -4,16 +4,16 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-rift}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rift_secret}
-      POSTGRES_DB: ${POSTGRES_DB:-rift}
+      POSTGRES_USER: ${POSTGRES_USER:-komosis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-komosis_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-komosis}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docs/SCHEMA.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rift}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-komosis}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -42,7 +42,7 @@ services:
     environment:
       PORT: 3000
       OUTPUTS_DIR: /app/outputs
-      DATABASE_URL: postgres://${POSTGRES_USER:-rift}:${POSTGRES_PASSWORD:-rift_secret}@postgres:5432/${POSTGRES_DB:-rift}
+      DATABASE_URL: postgres://${POSTGRES_USER:-komosis}:${POSTGRES_PASSWORD:-komosis_secret}@postgres:5432/${POSTGRES_DB:-komosis}
       REDIS_URL: redis://redis:6379
       AGENT_BASE_URL: http://agent:8001
     volumes:
@@ -63,7 +63,7 @@ services:
     ports:
       - "${AGENT_PORT:-8001}:8001"
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-rift}:${POSTGRES_PASSWORD:-rift_secret}@postgres:5432/${POSTGRES_DB:-rift}
+      DATABASE_URL: postgres://${POSTGRES_USER:-komosis}:${POSTGRES_PASSWORD:-komosis_secret}@postgres:5432/${POSTGRES_DB:-komosis}
       REDIS_URL: redis://redis:6379
       GATEWAY_BASE_URL: http://gateway:3000
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -125,8 +125,8 @@ services:
       target: test
     profiles: ["test"]
     environment:
-      OUTPUTS_DIR: /tmp/rift-test-outputs
-      DATABASE_URL: postgres://${POSTGRES_USER:-rift}:${POSTGRES_PASSWORD:-rift_secret}@postgres:5432/${POSTGRES_DB:-rift}
+      OUTPUTS_DIR: /tmp/komosis-test-outputs
+      DATABASE_URL: postgres://${POSTGRES_USER:-komosis}:${POSTGRES_PASSWORD:-komosis_secret}@postgres:5432/${POSTGRES_DB:-komosis}
       REDIS_URL: redis://redis:6379
       AGENT_BASE_URL: http://agent:8001
 
@@ -138,9 +138,9 @@ services:
       target: test
     profiles: ["test"]
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-rift}:${POSTGRES_PASSWORD:-rift_secret}@postgres:5432/${POSTGRES_DB:-rift}
+      DATABASE_URL: postgres://${POSTGRES_USER:-komosis}:${POSTGRES_PASSWORD:-komosis_secret}@postgres:5432/${POSTGRES_DB:-komosis}
       REDIS_URL: redis://redis:6379
-      OUTPUTS_DIR: /tmp/rift-test-outputs
+      OUTPUTS_DIR: /tmp/komosis-test-outputs
 
 volumes:
   pgdata:

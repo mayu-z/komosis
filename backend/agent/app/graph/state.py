@@ -86,11 +86,19 @@ class AgentState(TypedDict, total=False):
     max_iterations: int
     feature_flags: dict[str, bool]
 
-    # ── Repo scanning ─────────────────────────────────
+    # ── Repo scanning ─────────────────────────────────────────
     repo_dir: str               # local clone path
     language: str               # "python", "javascript", "typescript", etc.
     framework: str              # "pytest", "jest", "mocha", etc.
     test_files: list[str]       # paths relative to repo root
+
+    # ── Decision routing (set by repo_scanner, read by decision_node) ────────
+    has_tests: bool             # True if test_files is non-empty
+    has_ci_pipeline: bool       # True if .github/workflows/, .gitlab-ci.yml, etc. found
+    tests_passing: bool         # Set to False by scanner; updated after test_runner runs
+    ci_file_path: str | None    # Path to detected CI config file, or None
+    next_node: str              # Routing target set by decision_node
+    summary: str                # Human-readable outcome summary (set by finalizer or scorer)
 
     # ── Test running / analysis ───────────────────────
     test_output: str            # raw stdout+stderr from test runner

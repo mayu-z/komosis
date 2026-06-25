@@ -1,5 +1,5 @@
 {
-  "name": "@rift/gateway",
+  "name": "@komosis/gateway",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "test:contracts": "vitest run test/contracts.test.ts"
   },
   "dependencies": {
-    "@rift/contracts": "workspace:*",
+    "@komosis/contracts": "workspace:*",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "bullmq": "^5.34.8",

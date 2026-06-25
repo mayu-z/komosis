@@ -2,7 +2,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { access } from "node:fs/promises";
 import path from "node:path";
-import type { ResultsJson } from "@rift/contracts";
+import type { ResultsJson } from "@komosis/contracts";
 import { schemaValidators } from "./validators.js";
 
 const RUN_ID_PATTERN = /^[A-Za-z0-9_-]+$/;

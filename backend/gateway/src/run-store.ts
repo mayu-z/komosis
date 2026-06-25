@@ -1,4 +1,4 @@
-import type { RunAgentDuplicateResponse, RunAgentResponse } from "@rift/contracts";
+import type { RunAgentDuplicateResponse, RunAgentResponse } from "@komosis/contracts";
 
 export type ActiveRunStatus = "queued" | "running";
 

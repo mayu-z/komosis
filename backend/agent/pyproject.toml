@@ -1,7 +1,7 @@
 [project]
-name = "rift-agent"
+name = "komosis-agent"
 version = "0.1.0"
-description = "RIFT 2026 autonomous CI/CD healing agent service"
+description = "Komosis autonomous CI/CD healing agent service"
 requires-python = ">=3.10"
 
 [tool.pytest.ini_options]

@@ -25,9 +25,9 @@ def test_agent_start_accepts_valid_payload() -> None:
         json={
             "run_id": "run_abc123",
             "repo_url": "https://github.com/org/repo",
-            "team_name": "RIFT ORGANISERS",
+            "team_name": "Test Team",
             "leader_name": "Saiyam Kumar",
-            "branch_name": "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+            "branch_name": "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
             "max_iterations": 5,
             "feature_flags": {
                 "ENABLE_KB_LOOKUP": True,
@@ -49,9 +49,9 @@ def test_agent_status_returns_running_after_start() -> None:
         json={
             "run_id": "run_status_1",
             "repo_url": "https://github.com/org/repo",
-            "team_name": "RIFT ORGANISERS",
+            "team_name": "Test Team",
             "leader_name": "Saiyam Kumar",
-            "branch_name": "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+            "branch_name": "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
             "max_iterations": 5,
             "feature_flags": {
                 "ENABLE_KB_LOOKUP": True,

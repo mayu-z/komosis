@@ -18,7 +18,7 @@ from ...db import insert_ci_event, insert_trace
 from ...events import emit_ci_update, emit_thought
 from ..state import AgentState, CiRun
 
-logger = logging.getLogger("rift.node.ci_monitor")
+logger = logging.getLogger("komosis.node.ci_monitor")
 
 
 def _public_ci_status(status: str) -> str:

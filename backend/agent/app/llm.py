@@ -27,7 +27,7 @@ from app.config import (
     OPENAI_TEMPERATURE,
 )
 
-logger = logging.getLogger("rift.llm")
+logger = logging.getLogger("komosis.llm")
 
 # ── Thread-safe round-robin key iterator ────────────────────
 

@@ -15,7 +15,7 @@ import redis.asyncio as aioredis
 
 from .config import REDIS_URL
 
-logger = logging.getLogger("rift.events")
+logger = logging.getLogger("komosis.events")
 
 _pool: aioredis.ConnectionPool | None = None
 

@@ -1,5 +1,5 @@
 """
-RIFT Agent Service — FastAPI application.
+Komosis Agent Service — FastAPI application.
 
 Phase C: Fully wired to LangGraph agent with real SSE streaming,
 Redis-backed events, asyncpg persistence, and conversational query.
@@ -28,7 +28,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(name)s %(levelname)-8s %(message)s",
 )
-logger = logging.getLogger("rift.agent")
+logger = logging.getLogger("komosis.agent")
 
 
 # ── Lifespan (startup / shutdown) ───────────────────────────
@@ -51,7 +51,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="RIFT Agent Service",
+    title="Komosis Agent Service",
     version="0.2.0",
     lifespan=lifespan,
 )

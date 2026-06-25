@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ResultsJson } from "@rift/contracts";
+import type { ResultsJson } from "@komosis/contracts";
 import { writeResultsArtifact } from "../src/artifacts.js";
 
 let outputsDir = "";
@@ -13,9 +13,9 @@ function validResults(runId: string): ResultsJson {
   return {
     run_id: runId,
     repo_url: "https://github.com/org/repo",
-    team_name: "RIFT ORGANISERS",
+    team_name: "Test Team",
     leader_name: "Saiyam Kumar",
-    branch_name: "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+    branch_name: "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
     final_status: "PASSED",
     total_failures: 1,
     total_fixes: 1,
@@ -47,7 +47,7 @@ function validResults(runId: string): ResultsJson {
 }
 
 beforeEach(async () => {
-  outputsDir = await mkdtemp(path.join(os.tmpdir(), "rift-gateway-query-"));
+  outputsDir = await mkdtemp(path.join(os.tmpdir(), "komosis-gateway-query-"));
   process.env.OUTPUTS_DIR = outputsDir;
   vi.resetModules();
   ({ createApp } = await import("../src/app.js"));
@@ -63,7 +63,7 @@ describe("query endpoints", () => {
     const app = createApp();
     const created = await request(app).post("/run-agent").send({
       repo_url: "https://github.com/org/repo",
-      team_name: "RIFT ORGANISERS",
+      team_name: "Test Team",
       leader_name: "Saiyam Kumar"
     });
 

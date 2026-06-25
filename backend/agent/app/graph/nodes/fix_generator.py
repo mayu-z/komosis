@@ -18,7 +18,7 @@ from ...db import insert_fix, insert_trace
 from ...events import emit_fix_applied, emit_thought
 from ..state import AgentState, FixRecord, TestFailure
 
-logger = logging.getLogger("rift.node.fix_generator")
+logger = logging.getLogger("komosis.node.fix_generator")
 
 
 # ── Rule-based fixers ───────────────────────────────────────

@@ -18,7 +18,7 @@ from ...events import emit_thought
 from ...llm import get_llm, has_llm_keys
 from ..state import AgentState, BugType, TestFailure
 
-logger = logging.getLogger("rift.node.ast_analyzer")
+logger = logging.getLogger("komosis.node.ast_analyzer")
 
 # ── Canonical bug types (must match DB CHECK constraint) ────
 _VALID_BUG_TYPES = {"LINTING", "SYNTAX", "LOGIC", "TYPE_ERROR", "IMPORT", "INDENTATION"}

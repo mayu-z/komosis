@@ -6,10 +6,10 @@ This file defines concrete acceptance tests to maximize score and avoid disquali
 
 ## 1.1 Branch Name Format
 Input:
-- team: `RIFT ORGANISERS`
+- team: `Test Team`
 - leader: `Saiyam Kumar`
 Expected:
-- `RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix`
+- `test_team_fix_branch`
 
 ## 1.2 Commit Prefix
 Any automated commit message must begin with `[AI-AGENT]`.

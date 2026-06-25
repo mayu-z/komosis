@@ -16,7 +16,7 @@ import asyncpg
 
 from .config import DATABASE_URL
 
-logger = logging.getLogger("rift.db")
+logger = logging.getLogger("komosis.db")
 
 _pool: asyncpg.Pool | None = None
 

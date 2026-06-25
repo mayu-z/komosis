@@ -1,5 +1,5 @@
 """
-Centralised configuration for the RIFT Agent service.
+Centralised configuration for the Komosis Agent Service.
 
 Every knob is driven by an environment variable with a sensible default.
 """
@@ -26,7 +26,7 @@ OPENAI_TEMPERATURE: float = float(os.getenv("OPENAI_TEMPERATURE", "0.2"))
 # ── Infrastructure ──────────────────────────────────────────
 DATABASE_URL: str = os.getenv(
     "DATABASE_URL",
-    "postgres://rift:rift_secret@postgres:5432/rift",
+    "postgres://komosis:komosis_secret@postgres:5432/komosis",
 )
 REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379")
 GATEWAY_BASE_URL: str = os.getenv("GATEWAY_BASE_URL", "http://gateway:3000")

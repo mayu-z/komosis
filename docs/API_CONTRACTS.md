@@ -12,7 +12,7 @@ This document provides implementation-ready payload schemas for backend and fron
 ```json
 {
   "repo_url": "https://github.com/org/repo",
-  "team_name": "RIFT ORGANISERS",
+  "team_name": "Test Team",
   "leader_name": "Saiyam Kumar",
   "requested_ref": "main"
 }
@@ -28,7 +28,7 @@ This document provides implementation-ready payload schemas for backend and fron
 ```json
 {
   "run_id": "run_abc123",
-  "branch_name": "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+  "branch_name": "test_team_fix_branch",
   "status": "queued",
   "socket_room": "/run/run_abc123",
   "fingerprint": "3dc49b..."
@@ -132,9 +132,9 @@ See `results.json` contract in `SOURCE_OF_TRUTH.md` and `db-architecture.txt`.
 {
   "run_id": "run_abc123",
   "repo_url": "https://github.com/org/repo",
-  "team_name": "RIFT ORGANISERS",
+  "team_name": "Test Team",
   "leader_name": "Saiyam Kumar",
-  "branch_name": "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+  "branch_name": "test_team_fix_branch",
   "max_iterations": 5,
   "feature_flags": {
     "ENABLE_KB_LOOKUP": true,

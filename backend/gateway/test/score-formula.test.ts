@@ -24,9 +24,9 @@ function buildResults(totalTimeSecs: number, totalCommits: number, overrides: Re
   return {
     run_id: "run_score_test",
     repo_url: "https://github.com/org/repo",
-    team_name: "RIFT ORGANISERS",
+    team_name: "Test Team",
     leader_name: "Saiyam Kumar",
-    branch_name: "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+    branch_name: "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
     final_status: "PASSED",
     total_failures: 1,
     total_fixes: 1,

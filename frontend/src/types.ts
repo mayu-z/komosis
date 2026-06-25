@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────────────────
- * Frontend type definitions — mirrors @rift/contracts
+ * Frontend type definitions — mirrors @komosis/contracts
  * ────────────────────────────────────────────────────────── */
 
 export type RunStatus = "queued" | "running" | "passed" | "failed" | "quarantined";

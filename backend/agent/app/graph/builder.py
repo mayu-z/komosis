@@ -1,15 +1,19 @@
 """
 LangGraph graph builder — wires all nodes with conditional edges.
 
-Graph flow:
-  repo_scanner → test_runner → ast_analyzer → [should_fix?]
-      YES → fix_generator → commit_push → [should_monitor_ci?]
-          YES → ci_monitor → [should_retry?]
-              "no_ci"  → ci_workflow_creator → ci_monitor (one-time loop)
-              "retry"  → increment_iteration → test_runner (loop)
-              "scorer" → scorer → END
-          NO → scorer → END
-      NO → scorer → END
+Graph flow (Phase 2):
+  repo_scanner → decision_node → [next_node?]
+    "test_runner"    → test_runner → ast_analyzer → [should_fix?]
+        YES → fix_generator → commit_push → [should_monitor_ci?]
+            YES → ci_monitor → [should_retry?]
+                "no_ci"  → ci_workflow_creator → ci_monitor (one-time loop)
+                "retry"  → increment_iteration → test_runner (loop)
+                "scorer" → scorer → END
+            NO → scorer → END
+        NO → scorer → END
+    "test_generator" → test_generator → cicd_generator → scorer → END
+    "cicd_generator" → cicd_generator → scorer → END
+    "finalizer"      → finalizer → scorer → END
 """
 from __future__ import annotations
 
@@ -24,6 +28,7 @@ from ..db import insert_trace, update_run_status
 from ..events import emit_status_update, emit_thought
 from .state import AgentState
 from .nodes.repo_scanner import repo_scanner
+from .nodes.decision_node import decision_node
 from .nodes.test_runner import test_runner
 from .nodes.ast_analyzer import ast_analyzer
 from .nodes.fix_generator import fix_generator
@@ -31,8 +36,13 @@ from .nodes.commit_push import commit_push
 from .nodes.ci_monitor import ci_monitor
 from .nodes.ci_workflow_creator import ci_workflow_creator
 from .nodes.scorer import scorer
+# Phase 2 new nodes
+from .nodes.cicd_generator import cicd_generator
+from .nodes.test_generator import test_generator
+from .nodes.finalizer import finalizer
 
-logger = logging.getLogger("rift.graph")
+
+logger = logging.getLogger("komosis.graph")
 
 
 # ── Increment iteration (thin transition node) ─────────────
@@ -131,25 +141,58 @@ def build_agent_graph() -> Any:
     """
     Construct and compile the LangGraph StateGraph.
     Returns a compiled graph that can be invoked with `graph.ainvoke(state)`.
+
+    Graph flow:
+      repo_scanner → decision_node → [next_node?]
+        "test_runner"    → test_runner → ast_analyzer → [should_fix?]
+            YES → fix_generator → commit_push → [should_monitor_ci?]
+                YES → ci_monitor → [should_retry?]
+                    "no_ci"  → ci_workflow_creator → ci_monitor (one-time)
+                    "retry"  → increment_iteration → test_runner (loop)
+                    "scorer" → scorer → END
+                NO  → scorer → END
+            NO  → scorer → END
+        "test_generator" → test_generator → cicd_generator → scorer → END
+        "cicd_generator" → cicd_generator → scorer → END
+        "finalizer"      → finalizer → scorer → END
     """
     graph = StateGraph(AgentState)
 
-    # Add nodes
-    graph.add_node("repo_scanner", repo_scanner)
-    graph.add_node("test_runner", test_runner)
-    graph.add_node("ast_analyzer", ast_analyzer)
-    graph.add_node("fix_generator", fix_generator)
-    graph.add_node("commit_push", commit_push)
-    graph.add_node("ci_monitor", ci_monitor)
+    # ── Register all nodes ──────────────────────────────────────────────────
+    graph.add_node("repo_scanner",        repo_scanner)
+    graph.add_node("decision_node",       decision_node)
+    graph.add_node("test_runner",         test_runner)
+    graph.add_node("ast_analyzer",        ast_analyzer)
+    graph.add_node("fix_generator",       fix_generator)
+    graph.add_node("commit_push",         commit_push)
+    graph.add_node("ci_monitor",          ci_monitor)
     graph.add_node("ci_workflow_creator", ci_workflow_creator)
-    graph.add_node("scorer", scorer)
+    graph.add_node("scorer",              scorer)
     graph.add_node("increment_iteration", increment_iteration)
+    # New Phase 2 nodes
+    graph.add_node("cicd_generator",      cicd_generator)
+    graph.add_node("test_generator",      test_generator)
+    graph.add_node("finalizer",           finalizer)
 
-    # Set entry point
+    # ── Entry point ─────────────────────────────────────────────────────────
     graph.set_entry_point("repo_scanner")
 
-    # Linear edges
-    graph.add_edge("repo_scanner", "test_runner")
+    # ── repo_scanner → decision_node (replaces old direct edge to test_runner)
+    graph.add_edge("repo_scanner", "decision_node")
+
+    # ── decision_node conditional routing ────────────────────────────────────
+    graph.add_conditional_edges(
+        "decision_node",
+        lambda state: state.get("next_node", "test_runner"),
+        {
+            "test_runner":    "test_runner",
+            "test_generator": "test_generator",
+            "cicd_generator": "cicd_generator",
+            "finalizer":      "finalizer",
+        },
+    )
+
+    # ── Existing fix flow (unchanged) ────────────────────────────────────────
     graph.add_edge("test_runner", "ast_analyzer")
 
     # Conditional: after analysis, fix or score
@@ -158,7 +201,7 @@ def build_agent_graph() -> Any:
         should_fix,
         {
             "fix_generator": "fix_generator",
-            "scorer": "scorer",
+            "scorer":        "scorer",
         },
     )
 
@@ -170,8 +213,8 @@ def build_agent_graph() -> Any:
         should_monitor_ci,
         {
             "ci_monitor": "ci_monitor",
-            "retry": "increment_iteration",
-            "scorer": "scorer",
+            "retry":      "increment_iteration",
+            "scorer":     "scorer",
         },
     )
 
@@ -180,9 +223,9 @@ def build_agent_graph() -> Any:
         "ci_monitor",
         should_retry,
         {
-            "retry": "increment_iteration",
+            "retry":           "increment_iteration",
             "create_workflow": "ci_workflow_creator",
-            "scorer": "scorer",
+            "scorer":          "scorer",
         },
     )
 
@@ -192,10 +235,19 @@ def build_agent_graph() -> Any:
     # Retry loop → back to test_runner
     graph.add_edge("increment_iteration", "test_runner")
 
-    # Terminal
+    # ── New Phase 2 paths ────────────────────────────────────────────────────
+    # test_generator → cicd_generator → scorer
+    graph.add_edge("test_generator", "cicd_generator")
+    graph.add_edge("cicd_generator",  "scorer")
+
+    # finalizer → scorer
+    graph.add_edge("finalizer", "scorer")
+
+    # ── Terminal ─────────────────────────────────────────────────────────────
     graph.add_edge("scorer", END)
 
     return graph.compile()
+
 
 
 # ── Recursion limit ─────────────────────────────────────────

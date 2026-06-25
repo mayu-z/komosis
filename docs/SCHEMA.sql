@@ -1,4 +1,4 @@
--- RIFT 2026 Autonomous CI/CD Healing Agent
+-- Komosis — Autonomous CI/CD Healing Agent
 -- Starter PostgreSQL schema
 
 create extension if not exists pgcrypto;

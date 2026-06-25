@@ -13,7 +13,7 @@ from ...db import insert_trace
 from ...events import emit_thought
 from ..state import AgentState
 
-logger = logging.getLogger("rift.node.test_runner")
+logger = logging.getLogger("komosis.node.test_runner")
 
 # Framework → command template (universal: 30+ frameworks)
 _COMMANDS: dict[str, list[str]] = {
@@ -421,6 +421,7 @@ async def test_runner(state: AgentState) -> AgentState:
     return {
         "test_output": test_output,
         "test_exit_code": exit_code,
+        "tests_passing": exit_code == 0,   # read by decision routing on retries
         "current_node": "test_runner",
     }
 

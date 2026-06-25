@@ -23,7 +23,7 @@ COPY backend/worker/tsconfig.json ./backend/worker/tsconfig.json
 COPY backend/worker/src ./backend/worker/src
 
 # Build
-RUN pnpm --filter @rift/contracts run build && pnpm --filter @rift/worker run build
+RUN pnpm --filter @komosis/contracts run build && pnpm --filter @komosis/worker run build
 
 # ── Runtime stage ───────────────────────────────────────
 FROM node:20-alpine AS runtime

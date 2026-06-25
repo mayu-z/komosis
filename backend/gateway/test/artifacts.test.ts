@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { ResultsJson } from "@rift/contracts";
+import type { ResultsJson } from "@komosis/contracts";
 import {
   hasReportArtifact,
   readResultsArtifact,
@@ -13,7 +13,7 @@ import {
 const tempDirs: string[] = [];
 
 async function makeTempDir(): Promise<string> {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "rift-gateway-"));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "komosis-gateway-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -22,9 +22,9 @@ function validResults(runId: string): ResultsJson {
   return {
     run_id: runId,
     repo_url: "https://github.com/org/repo",
-    team_name: "RIFT ORGANISERS",
+    team_name: "Test Team",
     leader_name: "Saiyam Kumar",
-    branch_name: "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+    branch_name: "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
     final_status: "PASSED",
     total_failures: 2,
     total_fixes: 2,
@@ -65,7 +65,7 @@ describe("results artifact service", () => {
     const runId = "run_abc123";
 
     const filePath = await writeResultsArtifact(outputsRoot, runId, validResults(runId));
-    expect(filePath.endsWith(`/run_abc123/results.json`)).toBe(true);
+    expect(filePath.endsWith(path.join("run_abc123", "results.json"))).toBe(true);
 
     const loaded = await readResultsArtifact(outputsRoot, runId);
     expect(loaded.run_id).toBe(runId);

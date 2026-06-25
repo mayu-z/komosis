@@ -18,9 +18,9 @@ import {
 // ── §1.1 Branch name format ─────────────────────────────────
 
 describe("§1.1 branch name format", () => {
-  it("formats canonical sample: RIFT ORGANISERS + Saiyam Kumar", () => {
-    expect(formatBranchName("RIFT ORGANISERS", "Saiyam Kumar")).toBe(
-      "RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix",
+  it("formats canonical sample: Test Team + Saiyam Kumar", () => {
+    expect(formatBranchName("Test Team", "Saiyam Kumar")).toBe(
+      "TEST_TEAM_SAIYAM_KUMAR_AI_Fix",
     );
   });
 
@@ -37,8 +37,8 @@ describe("§1.1 branch name format", () => {
   });
 
   it("strips non-alphanumeric characters except underscore", () => {
-    expect(formatBranchName("RIFT@2026!", "Leader#1")).toBe(
-      "RIFT2026_LEADER1_AI_Fix",
+    expect(formatBranchName("Test@2026!", "Leader#1")).toBe(
+      "TEST2026_LEADER1_AI_Fix",
     );
   });
 
@@ -110,7 +110,7 @@ describe("§1.3 protected branch block", () => {
 
   it("allows push to feature branch", () => {
     expect(() =>
-      assertNonProtectedTargetBranch("RIFT_ORGANISERS_SAIYAM_KUMAR_AI_Fix"),
+      assertNonProtectedTargetBranch("test_team_fix_branch"),
     ).not.toThrow();
   });
 

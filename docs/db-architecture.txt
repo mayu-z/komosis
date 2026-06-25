@@ -1,5 +1,5 @@
 ================================================================================
-RIFT 2026 - AUTONOMOUS CI/CD HEALING AGENT
+KOMOSIS — AUTONOMOUS CI/CD HEALING AGENT
 DATABASE AND STORAGE ARCHITECTURE (IMPLEMENTATION GRADE)
 ================================================================================
 

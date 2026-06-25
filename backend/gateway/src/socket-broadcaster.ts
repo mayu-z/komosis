@@ -4,7 +4,7 @@ import type {
   RunCompleteEvent,
   ThoughtEvent,
   TelemetryTickEvent
-} from "@rift/contracts";
+} from "@komosis/contracts";
 import { schemaValidators } from "./validators.js";
 
 export interface SocketLike {

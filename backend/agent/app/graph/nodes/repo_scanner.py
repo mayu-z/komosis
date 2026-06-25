@@ -18,7 +18,7 @@ from ...db import insert_trace
 from ...events import emit_thought
 from ..state import AgentState
 
-logger = logging.getLogger("rift.node.repo_scanner")
+logger = logging.getLogger("komosis.node.repo_scanner")
 
 # ── Universal language detection ────────────────────────────
 
@@ -503,10 +503,46 @@ async def repo_scanner(state: AgentState) -> AgentState:
         },
     )
 
+    # ── Decision routing fields ──────────────────────────────────────────────
+    # Check for existing CI pipelines in the cloned repo
+    _CI_MARKERS = [
+        ".github/workflows",
+        ".gitlab-ci.yml",
+        "Jenkinsfile",
+        "circle.yml",
+        ".circleci/config.yml",
+        "azure-pipelines.yml",
+        ".travis.yml",
+        "bitbucket-pipelines.yml",
+    ]
+
+    ci_file_path: str | None = None
+    for marker in _CI_MARKERS:
+        candidate = repo_dir / marker
+        if candidate.exists():
+            ci_file_path = str(candidate)
+            break
+
+    has_ci_pipeline = ci_file_path is not None
+    has_tests = len(test_files) > 0
+
+    await emit_thought(
+        run_id,
+        "repo_scanner",
+        f"CI pipeline detected: {has_ci_pipeline} | Has tests: {has_tests}",
+        step + 2,
+    )
+
     return {
         "repo_dir": str(repo_dir),
         "language": language,
         "framework": framework,
         "test_files": test_files,
+        # Decision routing fields
+        "has_tests": has_tests,
+        "has_ci_pipeline": has_ci_pipeline,
+        "tests_passing": False,      # default; test_runner will update this
+        "ci_file_path": ci_file_path,
         "current_node": "repo_scanner",
     }
+

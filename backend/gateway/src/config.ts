@@ -8,7 +8,7 @@ export const config = {
   // Database
   databaseUrl:
     process.env.DATABASE_URL ??
-    "postgres://rift:rift_secret@localhost:5432/rift",
+    "postgres://komosis:komosis_secret@localhost:5432/komosis",
 
   // Redis
   redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
@@ -16,3 +16,4 @@ export const config = {
   // Agent service
   agentBaseUrl: process.env.AGENT_BASE_URL ?? "http://localhost:8001",
 };
+

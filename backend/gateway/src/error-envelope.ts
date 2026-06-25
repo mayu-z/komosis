@@ -1,4 +1,4 @@
-import type { ErrorEnvelope } from "@rift/contracts";
+import type { ErrorEnvelope } from "@komosis/contracts";
 
 export function buildErrorEnvelope(
   code: string,

@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        rift: {
+        komosis: {
           50: "#f0f4ff",
           100: "#dbe4ff",
           200: "#bac8ff",
