@@ -22,9 +22,12 @@ from ...config import (
     SCORE_SPEED_BONUS,
     SCORE_SPEED_THRESHOLD_SECS,
 )
-from ...db import insert_trace, save_report_pdf, update_run_status
-from ...events import emit_run_complete, emit_thought
+import asyncio
+
+from ...db import insert_trace, save_report_pdf, update_run_status, update_run_intelligence
+from ...events import emit_run_complete, emit_thought, emit_agent_intelligence
 from ...report import generate_report_pdf
+from ...utils.diff_builder import build_diff_summary
 from ..state import AgentState, ScoreBreakdown
 
 logger = logging.getLogger("komosis.node.scorer")
@@ -170,6 +173,52 @@ async def scorer(state: AgentState) -> AgentState:
     except Exception:
         logger.exception("Failed to generate report.pdf for run %s", run_id)
         # Non-fatal: results.json is the primary artifact
+
+    # ── Agent intelligence: build diff, write to DB, emit socket event ─────────
+    repo_dir       = state.get("repo_dir", "")
+    branch_name    = state.get("branch_name", "")
+    diff_summary   = state.get("diff_summary")
+
+    if repo_dir and not diff_summary:
+        # Build diff summary if not already set (e.g. scorer is the terminal node
+        # on paths that don't go through finalizer)
+        diff_summary = await asyncio.to_thread(
+            build_diff_summary, repo_dir, branch_name
+        )
+
+    diff_summary = diff_summary or []
+
+    try:
+        await update_run_intelligence(
+            run_id,
+            detected_language  = state.get("language"),
+            detected_framework = state.get("framework"),
+            detected_platform  = state.get("platform"),
+            has_tests          = state.get("has_tests", False),
+            has_ci_pipeline    = state.get("has_ci_pipeline", False),
+            decision_path      = state.get("decision_path"),
+            cicd_generated     = state.get("cicd_generated", False),
+            tests_generated    = state.get("tests_generated", False),
+            diff_summary       = diff_summary,
+        )
+    except Exception as exc:
+        logger.warning("update_run_intelligence failed (non-fatal): %s", exc)
+
+    try:
+        await emit_agent_intelligence(
+            run_id,
+            language        = state.get("language"),
+            framework       = state.get("framework"),
+            platform        = state.get("platform"),
+            has_tests       = state.get("has_tests", False),
+            has_ci          = state.get("has_ci_pipeline", False),
+            decision_path   = state.get("decision_path"),
+            cicd_generated  = state.get("cicd_generated", False),
+            tests_generated = state.get("tests_generated", False),
+            diff_summary    = diff_summary,
+        )
+    except Exception as exc:
+        logger.warning("emit_agent_intelligence failed (non-fatal): %s", exc)
 
     # Persist final state to DB
     from datetime import datetime, timezone

@@ -1,6 +1,3 @@
-/* ──────────────────────────────────────────────────────────
- * DashboardPage — the live run dashboard with all 5 sections
- * ────────────────────────────────────────────────────────── */
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useRunContext } from "@/context/RunContext";
@@ -13,6 +10,8 @@ import RunSummaryCard from "@/sections/RunSummaryCard";
 import ScoreBreakdownPanel from "@/sections/ScoreBreakdownPanel";
 import FixesAppliedTable from "@/sections/FixesAppliedTable";
 import CiTimelinePanel from "@/sections/CiTimelinePanel";
+import RepoIntelligenceCard from "@/sections/RepoIntelligenceCard";
+import DiffViewer from "@/sections/DiffViewer";
 
 export default function DashboardPage() {
   const { runId } = useParams<{ runId: string }>();
@@ -46,7 +45,11 @@ export default function DashboardPage() {
           <ScoreBreakdownPanel />
         </div>
 
-        {/* ─── Row 2: Agent Thoughts (real-time) ───────── */}
+        {/* ─── Row 2: Agent Intelligence (new panels) ──── */}
+        <RepoIntelligenceCard />
+        <DiffViewer />
+
+        {/* ─── Row 3: Agent Thoughts (real-time) ───────── */}
         <Card
           title="Agent Thoughts"
           subtitle="Real-time reasoning stream"
@@ -54,7 +57,7 @@ export default function DashboardPage() {
           <ThoughtStream thoughts={state.thoughts} maxHeight="400px" />
         </Card>
 
-        {/* ─── Row 3: Fixes + CI ──────────────────────── */}
+        {/* ─── Row 4: Fixes + CI ──────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FixesAppliedTable />
           <CiTimelinePanel />

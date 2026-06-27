@@ -344,10 +344,12 @@ async def test_generator(state: AgentState) -> AgentState:
     existing_test_files.append(test_file_rel)
 
     return {
-        "summary":       summary,
-        "test_files":    existing_test_files,
-        "has_tests":     True,
-        "framework":     framework,
-        "total_commits": total_commits + 1,
-        "current_node":  "test_generator",
+        "summary":         summary,
+        "test_files":      existing_test_files,
+        "has_tests":       True,
+        "framework":       framework,
+        "total_commits":   total_commits + 1,
+        "tests_generated": True,
+        "decision_path":   (state.get("decision_path") or "") + " → cicd_generator",
+        "current_node":    "test_generator",
     }

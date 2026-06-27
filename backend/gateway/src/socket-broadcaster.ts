@@ -50,4 +50,10 @@ export class ContractSafeBroadcaster {
     }
     this.io.to(room).emit("run_complete", payload);
   }
+
+  // Pass-through — agent intelligence has a flexible schema not in the
+  // strict contracts package, so we skip validation and forward as-is.
+  emitAgentIntelligence(room: string, payload: unknown): void {
+    this.io.to(room).emit("agent_intelligence", payload);
+  }
 }

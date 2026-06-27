@@ -115,7 +115,10 @@ runQueryRouter.get("/results/:runId", async (req, res) => {
     const runRow = await pool.query(
       `SELECT run_id, repo_url, team_name, leader_name, branch_name, status,
               total_failures, total_fixes, total_time_secs,
-              base_score, speed_bonus, efficiency_penalty, final_score
+              base_score, speed_bonus, efficiency_penalty, final_score,
+              detected_language, detected_framework, detected_platform,
+              has_tests, has_ci_pipeline, decision_path,
+              cicd_generated, tests_generated, diff_summary
        FROM runs WHERE run_id = $1`, [runId]
     );
     if (runRow.rows.length === 0) {
@@ -158,6 +161,17 @@ runQueryRouter.get("/results/:runId", async (req, res) => {
         efficiency_penalty: run.efficiency_penalty ?? 0,
         total: run.final_score ?? 0,
       },
+      // ── Agent intelligence fields ────────────────────────────
+      detected_language:  run.detected_language  ?? null,
+      detected_framework: run.detected_framework ?? null,
+      detected_platform:  run.detected_platform  ?? null,
+      has_tests:          run.has_tests          ?? false,
+      has_ci_pipeline:    run.has_ci_pipeline    ?? false,
+      decision_path:      run.decision_path      ?? null,
+      cicd_generated:     run.cicd_generated     ?? false,
+      tests_generated:    run.tests_generated    ?? false,
+      diff_summary:       run.diff_summary       ?? [],
+      // ── Existing arrays ──────────────────────────────────────
       fixes: fixRows.rows.map((f: Record<string, unknown>) => ({
         file: f.file_path as string,
         bug_type: f.bug_type as string,

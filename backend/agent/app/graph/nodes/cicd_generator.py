@@ -326,11 +326,12 @@ async def cicd_generator(state: AgentState) -> AgentState:
     )
 
     return {
-        "summary":          summary,
+        "summary":             summary,
         "ci_workflow_created": True,
-        "has_ci_pipeline":  True,
-        "ci_file_path":     workflow_rel,
-        "total_commits":    total_commits + 1,
-        "test_exit_code":   0,   # reaching here means tests passed (or gen succeeded)
-        "current_node":     "cicd_generator",
+        "has_ci_pipeline":     True,
+        "ci_file_path":        workflow_rel,
+        "total_commits":       total_commits + 1,
+        "test_exit_code":      0,
+        "cicd_generated":      True,
+        "current_node":        "cicd_generator",
     }

@@ -48,7 +48,8 @@ type EventType =
   | "fix_applied"
   | "ci_update"
   | "telemetry_tick"
-  | "run_complete";
+  | "run_complete"
+  | "agent_intelligence";
 
 function extractEventType(channel: string): EventType | null {
   const last = channel.split(":").pop() ?? "";
@@ -58,6 +59,7 @@ function extractEventType(channel: string): EventType | null {
     "ci_update",
     "telemetry_tick",
     "run_complete",
+    "agent_intelligence",
   ];
   return allowed.includes(last as EventType) ? (last as EventType) : null;
 }
@@ -174,6 +176,9 @@ export class RedisBridge {
           this.broadcaster.emitRunComplete(room, payload);
           // Also sync runStore
           runStore.markComplete(runId);
+          break;
+        case "agent_intelligence":
+          this.broadcaster.emitAgentIntelligence(room, payload);
           break;
       }
     } catch (err) {

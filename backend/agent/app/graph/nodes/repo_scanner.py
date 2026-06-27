@@ -97,11 +97,11 @@ _DETECTION_MAP: dict[str, list[tuple[str, str]]] = {
     ],
     # TypeScript
     "typescript": [
-        ("**/*.test.ts", "jest"),
-        ("**/*.spec.ts", "jest"),
-        ("**/*.test.tsx", "jest"),
-        ("**/*.spec.tsx", "jest"),
-        ("**/test/**/*.ts", "vitest"),
+        ("**/*.test.ts",  "vitest"),
+        ("**/*.spec.ts",  "vitest"),
+        ("**/*.test.tsx", "vitest"),
+        ("**/*.spec.tsx", "vitest"),
+        ("**/test/**/*.ts",      "vitest"),
         ("**/__tests__/**/*.ts", "jest"),
     ],
     # C# (.NET)
@@ -379,7 +379,24 @@ def _detect_framework_from_pkg(pkg: dict) -> str | None:
 
 def _detect_framework(repo_path: Path, language: str) -> tuple[str, list[str]]:
     """Return (framework_name, list_of_test_files)."""
-    # 1. Check glob patterns for test files based on detected language
+    # 1. package.json scripts — ground truth, check FIRST for JS/TS
+    pkg = _read_package_json(repo_path)
+    if pkg:
+        fw = _detect_framework_from_pkg(pkg)
+        if fw:
+            # Still find test files via glob
+            test_files: list[str] = []
+            for glob_pattern, _ in _DETECTION_MAP.get(language, []):
+                test_files = sorted(
+                    str(p.relative_to(repo_path))
+                    for p in repo_path.glob(glob_pattern)
+                    if not (_SKIP_DIRS & set(p.parts))
+                )
+                if test_files:
+                    break
+            return fw, test_files
+
+    # 2. Check glob patterns for test files based on detected language
     patterns = _DETECTION_MAP.get(language, [])
     for glob_pattern, framework in patterns:
         matches = sorted(
@@ -390,7 +407,7 @@ def _detect_framework(repo_path: Path, language: str) -> tuple[str, list[str]]:
         if matches:
             return framework, matches
 
-    # 2. Config-file overrides (language-specific)
+    # 3. Config-file overrides (language-specific)
     _CONFIG_CHECKS: list[tuple[str, str, str | None]] = [
         # Python
         ("pytest.ini", "pytest", None),
@@ -428,18 +445,13 @@ def _detect_framework(repo_path: Path, language: str) -> tuple[str, list[str]]:
             if lang_guard is None or language == lang_guard:
                 return fw, []
 
-    # 3. Project-file fallback from _PROJECT_FILE_MAP
+    # 4. Project-file fallback from _PROJECT_FILE_MAP
     for glob_pat, _lang, fw in _PROJECT_FILE_MAP:
         if _lang == language and list(repo_path.glob(glob_pat)):
             return fw, []
 
-    # 4. package.json detection for JS/TS ecosystem
-    pkg = _read_package_json(repo_path)
+    # 5. package.json fallback (npm-test) for JS/TS with a test script but no known framework
     if pkg:
-        fw = _detect_framework_from_pkg(pkg)
-        if fw:
-            return fw, []
-
         scripts = pkg.get("scripts", {})
         if "test" in scripts and scripts["test"].strip():
             return "npm-test", []

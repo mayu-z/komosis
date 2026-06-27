@@ -82,6 +82,40 @@ export interface ResultsJson {
   score: ScoreBreakdown;
   fixes: ResultFixRow[];
   ci_log: ResultCiRow[];
+
+  // ── Agent intelligence (populated after Phase 5) ─────────
+  detected_language?:  string | null;
+  detected_framework?: string | null;
+  detected_platform?:  string | null;
+  has_tests?:          boolean;
+  has_ci_pipeline?:    boolean;
+  decision_path?:      string | null;
+  cicd_generated?:     boolean;
+  tests_generated?:    boolean;
+  diff_summary?:       DiffEntry[];
+}
+
+// ── Agent Intelligence ───────────────────────────────────────
+
+export interface DiffEntry {
+  file: string;
+  diff: string;
+}
+
+export interface AgentIntelligence {
+  language:        string | null;
+  framework:       string | null;
+  platform:        string | null;
+  has_tests:       boolean;
+  has_ci:          boolean;
+  decision_path:   string | null;
+  cicd_generated:  boolean;
+  tests_generated: boolean;
+}
+
+export interface AgentIntelligenceEvent extends AgentIntelligence {
+  run_id:      string;
+  diff_summary: DiffEntry[];
 }
 
 // ── Socket Events ───────────────────────────────────────────

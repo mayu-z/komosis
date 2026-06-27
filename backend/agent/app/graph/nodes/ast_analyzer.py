@@ -658,6 +658,19 @@ async def ast_analyzer(state: AgentState) -> AgentState:
 
     await emit_thought(run_id, "ast_analyzer", "Analyzing test failures…", step)
 
+    # Sentinel from test_runner: repo has no test suite at all.
+    # Return zero failures so decision_node routes to test_generator, not fix loops.
+    if test_output == "NO_TEST_SCRIPT":
+        await emit_thought(
+            run_id, "ast_analyzer",
+            "No test suite found — routing to test generator",
+            step + 1,
+        )
+        return {
+            "failures":     [],
+            "current_node": "ast_analyzer",
+        }
+
     # If tests passed, no failures to analyze
     if test_exit_code == 0:
         await emit_thought(run_id, "ast_analyzer", "All tests passed ✓", step + 1)

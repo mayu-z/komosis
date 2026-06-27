@@ -139,6 +139,40 @@ async def emit_run_complete(
     logger.info("run_complete run=%s status=%s score=%s", run_id, final_status, score.get("total"))
 
 
+async def emit_agent_intelligence(
+    run_id: str,
+    *,
+    language: str | None,
+    framework: str | None,
+    platform: str | None,
+    has_tests: bool,
+    has_ci: bool,
+    decision_path: str | None,
+    cicd_generated: bool,
+    tests_generated: bool,
+    diff_summary: list,
+) -> None:
+    """Publish agent intelligence data to Redis for the frontend panels."""
+    payload: dict[str, Any] = {
+        "run_id":          run_id,
+        "language":        language,
+        "framework":       framework,
+        "platform":        platform,
+        "has_tests":       has_tests,
+        "has_ci":          has_ci,
+        "decision_path":   decision_path,
+        "cicd_generated":  cicd_generated,
+        "tests_generated": tests_generated,
+        "diff_summary":    diff_summary,
+    }
+    r = await _get_redis()
+    await r.publish("run:event:agent_intelligence", json.dumps(payload))
+    logger.info(
+        "agent_intelligence run=%s lang=%s path=%s",
+        run_id, language, decision_path,
+    )
+
+
 async def emit_status_update(
     run_id: str,
     status: str,

@@ -93,6 +93,7 @@ async def decision_node(state: AgentState) -> AgentState:
     )
 
     return {
-        "next_node": next_node,
-        "current_node": "decision_node",
+        "next_node":     next_node,
+        "current_node":  "decision_node",
+        "decision_path": f"repo_scanner → decision_node → {next_node}",
     }

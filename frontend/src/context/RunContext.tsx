@@ -11,7 +11,10 @@ import React, {
   type ReactNode,
 } from "react";
 import type {
+  AgentIntelligence,
+  AgentIntelligenceEvent,
   CiUpdateEvent,
+  DiffEntry,
   FixAppliedEvent,
   ResultsJson,
   RunCompleteEvent,
@@ -37,6 +40,8 @@ export interface RunState {
   telemetry: TelemetryTickEvent[];
   results: ResultsJson | null;
   completionEvent: RunCompleteEvent | null;
+  intelligence: AgentIntelligence | null;
+  diffs: DiffEntry[];
   error: string | null;
 }
 
@@ -54,6 +59,8 @@ const initialState: RunState = {
   telemetry: [],
   results: null,
   completionEvent: null,
+  intelligence: null,
+  diffs: [],
   error: null,
 };
 
@@ -68,6 +75,7 @@ type Action =
   | { type: "ADD_TELEMETRY"; payload: TelemetryTickEvent }
   | { type: "SET_RESULTS"; payload: ResultsJson }
   | { type: "SET_COMPLETE"; payload: RunCompleteEvent }
+  | { type: "SET_INTELLIGENCE"; payload: AgentIntelligenceEvent }
   | { type: "SET_ERROR"; error: string }
   | { type: "RESET" };
 
@@ -141,13 +149,35 @@ function reducer(state: RunState, action: Action): RunState {
         telemetry: [...state.telemetry, action.payload],
       };
 
-    case "SET_RESULTS":
+    case "SET_RESULTS": {
+      const r = action.payload;
+      // Hydrate intelligence/diffs from the results payload if present
+      // (covers page-refresh case where the socket event was missed)
+      const hasIntelligence =
+        r.detected_language  != null ||
+        r.detected_framework != null ||
+        r.decision_path      != null;
+
       return {
         ...state,
-        results: action.payload,
-        status: action.payload.final_status.toLowerCase() as RunStatus,
+        results:     r,
+        status:      r.final_status.toLowerCase() as RunStatus,
         progressPct: 100,
+        ...(hasIntelligence && {
+          intelligence: {
+            language:        r.detected_language  ?? null,
+            framework:       r.detected_framework ?? null,
+            platform:        r.detected_platform  ?? null,
+            has_tests:       r.has_tests          ?? false,
+            has_ci:          r.has_ci_pipeline    ?? false,
+            decision_path:   r.decision_path      ?? null,
+            cicd_generated:  r.cicd_generated     ?? false,
+            tests_generated: r.tests_generated    ?? false,
+          },
+          diffs: r.diff_summary ?? [],
+        }),
       };
+    }
 
     case "SET_COMPLETE":
       return {
@@ -156,6 +186,24 @@ function reducer(state: RunState, action: Action): RunState {
         status: action.payload.final_status.toLowerCase() as RunStatus,
         progressPct: 100,
       };
+
+    case "SET_INTELLIGENCE": {
+      const ev = action.payload;
+      return {
+        ...state,
+        intelligence: {
+          language:        ev.language,
+          framework:       ev.framework,
+          platform:        ev.platform,
+          has_tests:       ev.has_tests,
+          has_ci:          ev.has_ci,
+          decision_path:   ev.decision_path,
+          cicd_generated:  ev.cicd_generated,
+          tests_generated: ev.tests_generated,
+        },
+        diffs: ev.diff_summary ?? [],
+      };
+    }
 
     case "SET_ERROR":
       return { ...state, error: action.error, status: "failed" };

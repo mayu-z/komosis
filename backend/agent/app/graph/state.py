@@ -130,6 +130,12 @@ class AgentState(TypedDict, total=False):
     results_json_path: str
     pdf_url: str
 
-    # ── Error / quarantine ────────────────────────────
+    # ── Error / quarantine ────────────────────────────────
     error_message: str
     quarantine_reason: str
+
+    # ── Agent intelligence (written at terminal, read by scorer) ─
+    decision_path: str          # e.g. "repo_scanner → decision_node → test_generator → cicd_generator"
+    cicd_generated: bool        # True if cicd_generator committed a pipeline this run
+    tests_generated: bool       # True if test_generator committed a test file this run
+    diff_summary: list          # list[{"file": str, "diff": str}] from diff_builder

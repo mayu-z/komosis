@@ -99,6 +99,54 @@ async def update_run_status(
     logger.debug("update_run_status run=%s status=%s", run_id, status)
 
 
+async def update_run_intelligence(
+    run_id: str,
+    *,
+    detected_language: str | None = None,
+    detected_framework: str | None = None,
+    detected_platform: str | None = None,
+    has_tests: bool | None = None,
+    has_ci_pipeline: bool | None = None,
+    decision_path: str | None = None,
+    cicd_generated: bool | None = None,
+    tests_generated: bool | None = None,
+    diff_summary: list | None = None,
+) -> None:
+    """
+    Write agent intelligence fields to the runs row.
+
+    All parameters are optional — only non-None values are applied.
+    Uses COALESCE so existing data is never clobbered by a NULL write.
+    """
+    pool = await get_pool()
+    await pool.execute(
+        """
+        UPDATE runs
+           SET detected_language  = COALESCE($2,  detected_language),
+               detected_framework = COALESCE($3,  detected_framework),
+               detected_platform  = COALESCE($4,  detected_platform),
+               has_tests          = COALESCE($5,  has_tests),
+               has_ci_pipeline    = COALESCE($6,  has_ci_pipeline),
+               decision_path      = COALESCE($7,  decision_path),
+               cicd_generated     = COALESCE($8,  cicd_generated),
+               tests_generated    = COALESCE($9,  tests_generated),
+               diff_summary       = COALESCE($10, diff_summary)
+         WHERE run_id = $1
+        """,
+        run_id,
+        detected_language,
+        detected_framework,
+        detected_platform,
+        has_tests,
+        has_ci_pipeline,
+        decision_path,
+        cicd_generated,
+        tests_generated,
+        json.dumps(diff_summary) if diff_summary is not None else None,
+    )
+    logger.debug("update_run_intelligence run=%s", run_id)
+
+
 # ── Fixes ───────────────────────────────────────────────────
 
 async def insert_fix(

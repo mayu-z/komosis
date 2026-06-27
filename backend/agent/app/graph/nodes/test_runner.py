@@ -357,9 +357,9 @@ async def test_runner(state: AgentState) -> AgentState:
 
     test_output, exit_code = await _run_cmd(cmd, repo_dir)
 
-    # If primary command failed with "no tests" (exit=5 for jest) or
-    # command not found (127), try npm test as fallback for JS/TS repos
-    if exit_code in (5, 127) and language in ("javascript", "typescript") and framework != "npm-test":
+    # If primary command failed with "no tests" (exit=5), command not found (127),
+    # or missing npm script (exit=254), try npm test as fallback for JS/TS repos
+    if exit_code in (5, 127, 254) and language in ("javascript", "typescript") and framework != "npm-test":
         logger.info(
             "Primary test command failed (exit=%d), trying npm test fallback for run %s",
             exit_code, run_id,
@@ -375,6 +375,30 @@ async def test_runner(state: AgentState) -> AgentState:
             test_output = fallback_output
             exit_code = fallback_code
             framework = "npm-test"
+
+    # exit=254 from npm means "missing script: test" — no test suite at all.
+    # Treat this as a clean "tests not found" signal (exit=1, empty output)
+    # so ast_analyzer has nothing to parse and decision_node routes to test_generator.
+    if exit_code == 254 or (
+        exit_code != 0
+        and "missing script" in test_output.lower()
+        and "test" in test_output.lower()
+    ):
+        logger.info(
+            "No test script found in repo (exit=%d) for run %s — signalling no tests",
+            exit_code, run_id,
+        )
+        await emit_thought(
+            run_id, "test_runner",
+            "No test script found in this repository — will generate tests",
+            step,
+        )
+        return {
+            "test_output":   "NO_TEST_SCRIPT",
+            "test_exit_code": 1,
+            "tests_passing":  False,
+            "current_node":  "test_runner",
+        }
 
     # If still no useful test output for JS repos, try running with
     # npx to discover test files directly
