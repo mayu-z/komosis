@@ -1,294 +1,304 @@
-# Autonomous CI/CD Healing Agent
+# Komosis
 
-Komosis
-Track: AI/ML, DevOps Automation, Agentic Systems
+> Autonomous CI/CD healing agent — give it a broken GitHub repo, it fixes it.
 
-This repository contains a production-style autonomous CI/CD healing system and judge-facing React dashboard.
+Komosis takes a GitHub repository URL, clones it, runs the test suite, diagnoses failures, generates fixes, and commits them back to a new branch — without any human intervention. A real-time React dashboard shows every decision the agent makes as it happens.
 
-## 1. Quick Links
+---
 
-- Live Dashboard URL: `https://<your-dashboard-url>`
-- API Base URL: `https://<your-api-url>`
-- Demo Video URL: `https://linkedin.com/<your-video-post>`
-- Architecture Doc: `architecture.txt`
-- User Flow Doc: `user-flow.txt`
-- Database Doc: `db-architecture.txt`
-- Source of Truth: `SOURCE_OF_TRUTH.md`
-- Copilot Build Guide: `COPILOT_BUILD_GUIDE.md`
-- Railway Deploy Guide: `RAILWAY_DEPLOYMENT.md`
-- Vercel Deploy Guide: `VERCEL_DEPLOYMENT.md`
+## What It Does
 
-## 2. Project Objective
+1. You submit a GitHub repo URL
+2. Komosis clones it and runs the existing test suite in a sandboxed Docker container
+3. The LangGraph agent classifies every failure — syntax error, import issue, logic bug, type error, linting, indentation
+4. It generates a fix for each failure, validates it, and commits it with an `[AI-AGENT]` prefix
+5. It monitors CI, retries if needed, and rolls back if a fix causes a regression
+6. The dashboard updates in real time via WebSocket — you watch the agent think, fix, and commit
 
-Given a GitHub repository URL, the system autonomously:
-1. Validates input and creates a compliant branch name.
-2. Clones/analyzes repository and runs tests in sandbox.
-3. Detects failures and classifies bug types.
-4. Generates fixes and validates them.
-5. Commits fixes with `[AI-AGENT]` prefix to new branch.
-6. Monitors CI and retries until pass or retry limit hit.
-7. Produces `results.json` and updates dashboard in real time.
+---
 
-## 3. Track Compliance Matrix
+## Stack
 
-### 3.1 Required Dashboard Sections
+| Layer | Technology |
+|---|---|
+| Agent | Python, FastAPI, LangGraph, Groq (primary), OpenAI (fallback) |
+| Queue | BullMQ + Redis |
+| Gateway | Node.js, Express, Socket.io |
+| Frontend | React, Vite, TypeScript |
+| Sandbox | Docker (per-language containers) |
+| Database | PostgreSQL, Redis |
+| Monorepo | pnpm workspaces |
+| Deploy | Vercel (frontend), Railway (backend) |
 
-Implemented:
-1. Input Section (`repo_url`, `team_name`, `leader_name`, run button, loading state)
-2. Run Summary Card (repo, team, leader, branch, totals, status, duration)
-3. Score Breakdown Panel (base, speed bonus, efficiency penalty, final)
-4. Fixes Applied Table (file, bug type, line, commit message, status)
-5. CI/CD Status Timeline (iteration, pass/fail, timestamp, retry progress)
+---
 
-### 3.2 Required Branch Format
+## Architecture
 
-Exact format: `TEAM_NAME_LEADER_NAME_AI_Fix`
+```
+[ React Dashboard ]
+       │  WebSocket (Socket.io)
+       ▼
+[ Express Gateway ]  ──►  [ BullMQ Queue ]  ──►  [ FastAPI Agent ]
+       │                                                  │
+       │                                          [ LangGraph Graph ]
+       │                                                  │
+       │                              ┌───────────────────┤
+       │                              ▼                   ▼
+       │                      [ repo_scanner ]    [ test_runner ]
+       │                              │                   │
+       │                              ▼                   ▼
+       │                      [ decision_node ]   [ fix_generator ]
+       │                              │                   │
+       │                              ▼                   ▼
+       │                      [ cicd_generator ]  [ ci_monitor ]
+       │                              │                   │
+       └──────────────────────────────┴───► [ finalizer ]
+                                                  │
+                                         ┌────────┴────────┐
+                                         ▼                 ▼
+                                  [ PostgreSQL ]     [ results.json ]
+```
 
-Rules:
-- team and leader tokens uppercase
-- spaces replaced with underscores
-- suffix is literal `_AI_Fix`
-- no special chars except `_`
+---
 
-### 3.3 Required Bug Types
+## Agent Decision Flow
 
-Primary fixes table uses:
-- `LINTING`
-- `SYNTAX`
-- `LOGIC`
-- `TYPE_ERROR`
-- `IMPORT`
-- `INDENTATION`
+The LangGraph agent is not a simple pipeline. After scanning the repo it makes decisions:
 
-### 3.4 Required Output Artifact
+```
+repo_scanner
+     │
+     ▼
+decision_node
+     │
+     ├── tests exist + failing   →  test_runner → fix_generator → ci_monitor
+     │
+     ├── tests exist + passing   →  cicd_generator
+     │
+     ├── no tests found          →  test_generator → cicd_generator
+     │
+     └── healthy (tests pass, CI exists)  →  finalizer (nothing to do)
+```
 
-`results.json` is generated for every completed run.
+This means Komosis works on any repository — not just ones with failing tests.
 
-## 4. Architecture Summary
+---
 
-High-level components:
-1. Frontend: React + Vite dashboard
-2. Gateway: Node.js + Express + Socket.io
-3. Queue: BullMQ + Redis
-4. Agent Service: FastAPI + LangGraph
-5. Sandbox: Docker containers per language
-6. Data: PostgreSQL + Redis + filesystem (+ optional ChromaDB)
+## Fix Classification
 
-Details: see `architecture.txt`
+Every failure is classified before a fix is generated:
 
-## 5. End-to-End Execution
+| Bug Type | Example |
+|---|---|
+| `SYNTAX` | Missing colon, unclosed bracket |
+| `IMPORT` | Module not found, wrong import path |
+| `TYPE_ERROR` | Wrong type passed to function |
+| `LOGIC` | Incorrect condition, wrong return value |
+| `LINTING` | Unused variable, line too long |
+| `INDENTATION` | Mixed tabs/spaces, wrong indent level |
 
-1. User submits repo/team/leader.
-2. API validates and enqueues run.
-3. Agent pre-scans and clones repository.
-4. Agent analyzes code + runs tests.
-5. Fix loop: classify -> generate -> validate -> commit -> push.
-6. CI monitor loop with retries and rollback on regression.
-7. Finalize outputs and emit `run_complete`.
+Rule-based parsing runs first for deterministic classification. The LLM is only used as a fallback for failures that don't match known patterns.
 
-Details: see `user-flow.txt`
+---
 
-## 6. Data Model and Storage
+## Running Locally
 
-- PostgreSQL: runs, fixes, ci events, traces, strategy, benchmark
-- Redis: queue state, live status cache, event buffer
-- Filesystem: `/outputs/{run_id}/results.json`, `/outputs/{run_id}/report.pdf`
-- Optional vector memory: fix-pattern retrieval and reuse
+### Prerequisites
 
-Details: see `db-architecture.txt`
+- Node.js 20+
+- Python 3.11+
+- Docker
+- pnpm
 
-## 7. API Reference (Public)
+### Start infrastructure
 
-### `POST /run-agent`
+```bash
+docker run -d --name komosis-redis -p 6379:6379 redis:alpine
 
-Request:
+docker run -d --name komosis-postgres \
+  -e POSTGRES_USER=komosis \
+  -e POSTGRES_PASSWORD=komosis \
+  -e POSTGRES_DB=komosis \
+  -p 5432:5432 postgres:15
+```
+
+### Environment setup
+
+```bash
+cp .env.example .env
+```
+
+Minimum required variables:
+
+```env
+# Agent
+GROQ_API_KEYS=your_groq_key
+GITHUB_PAT=ghp_xxxxxxxxxxxx
+DATABASE_URL=postgresql://komosis:komosis@localhost:5432/komosis
+REDIS_URL=redis://localhost:6379
+
+# Gateway
+PORT=3000
+FASTAPI_URL=http://localhost:8001
+FRONTEND_URL=http://localhost:5173
+
+# Frontend
+VITE_API_URL=http://localhost:3000
+VITE_SOCKET_URL=http://localhost:3000
+```
+
+Get a free Groq API key at [console.groq.com](https://console.groq.com).
+Get a GitHub PAT at Settings → Developer settings → Personal access tokens → with `repo` and `workflow` scopes.
+
+### Start all services
+
+**Terminal 1 — Agent**
+```bash
+cd backend/agent
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8001
+```
+
+**Terminal 2 — Gateway**
+```bash
+cd backend/gateway
+pnpm install
+pnpm dev
+```
+
+**Terminal 3 — Worker**
+```bash
+cd backend/gateway
+pnpm worker
+```
+
+**Terminal 4 — Frontend**
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+
+Open `http://localhost:5173`.
+
+### Or use Docker Compose
+
+```bash
+docker compose up --build
+```
+
+---
+
+## API Reference
+
+### POST /run-agent
+
+Start an autonomous healing run.
+
 ```json
 {
   "repo_url": "https://github.com/org/repo",
-  "team_name": "Test Team",
-  "leader_name": "Saiyam Kumar"
+  "team_name": "your team",
+  "leader_name": "your name"
 }
 ```
 
 Response:
+
 ```json
 {
   "run_id": "run_abc123",
-  "branch_name": "test_team_fix_branch",
+  "branch_name": "YOUR_TEAM_YOUR_NAME_AI_Fix",
   "status": "queued",
   "socket_room": "/run/run_abc123"
 }
 ```
 
-### `GET /results/:runId`
-Returns run output JSON.
+### GET /results/:runId
 
-### `GET /report/:runId`
-Returns generated PDF report.
+Returns the full run output including fixes applied, CI status, and score.
 
-### `GET /replay/:runId`
-Returns execution trace for replay mode.
+### GET /report/:runId
 
-### `GET /agent/status/:runId`
-Returns current node, iteration, and progress.
+Returns a generated PDF incident report for the run.
 
-### `POST /agent/query`
-Post-run natural-language Q/A grounded in trace data.
+### GET /replay/:runId
 
-### `GET /health`
-Health check.
+Returns the full execution trace for replay mode in the dashboard.
 
-## 8. WebSocket Contract
+### GET /agent/status/:runId
 
-Room: `/run/:runId`
+Returns current LangGraph node, iteration count, and progress.
 
-Events:
-- `thought_event`
-- `fix_applied`
-- `ci_update`
-- `telemetry_tick`
-- `run_complete`
+### POST /agent/query
 
-Payload schemas are defined in `API_CONTRACTS.md`.
+Post-run natural language Q&A grounded in the run trace.
 
-## 9. Scoring Logic
-
-- Base: `100`
-- Speed bonus: `+10` if runtime `< 5 minutes`
-- Efficiency penalty: `-2` per commit above 20
-
-Formula:
-`final = 100 + speed_bonus - efficiency_penalty`
-
-## 10. Determinism Strategy (for test-case accuracy)
-
-1. Rule-based failure parser first (exact mappings).
-2. Strict bug-type normalizer.
-3. Line number validator against parsed stack traces.
-4. LLM fallback for unresolved cases only.
-5. Output schema validation before persistence.
-
-## 11. Installation and Local Setup
-
-### 11.1 Prerequisites
-
-- Node.js 20+
-- Python 3.11+
-- Docker
-- Redis
-- PostgreSQL
-
-### 11.2 Suggested Folder Layout
-
-- `frontend/` React app
-- `backend/gateway/` Express + BullMQ
-- `backend/agent/` FastAPI + LangGraph
-- `outputs/` run artifacts
-
-### 11.3 Frontend
-
-```bash
-cd frontend
-npm install
-cp .env.example .env.local
-npm run dev
+```json
+{ "run_id": "run_abc123", "question": "Why did the import fix fail on retry?" }
 ```
 
-### 11.4 Gateway
+### GET /health
 
-```bash
-cd backend/gateway
-npm install
-cp .env.example .env
-npm run dev
-npm run worker
+Health check. Returns `{ "status": "ok" }`.
+
+---
+
+## WebSocket Events
+
+Connect to `/run/:runId` to receive real-time agent updates.
+
+| Event | Description |
+|---|---|
+| `thought_event` | Agent reasoning step |
+| `fix_applied` | A fix was committed |
+| `ci_update` | CI pipeline status changed |
+| `telemetry_tick` | Iteration progress update |
+| `run_complete` | Run finished, results ready |
+
+---
+
+## Project Structure
+
+```
+komosis/
+├── backend/
+│   ├── agent/              # FastAPI + LangGraph agent
+│   │   ├── app/
+│   │   │   ├── nodes/      # LangGraph nodes
+│   │   │   ├── prompts/    # LLM prompt templates
+│   │   │   ├── utils/      # File analysis, diff building, platform detection
+│   │   │   └── llm.py      # Groq/OpenAI factory with round-robin key rotation
+│   │   └── main.py
+│   └── gateway/            # Express + BullMQ
+│       ├── src/
+│       │   ├── routes/
+│       │   └── workers/
+│       └── index.ts
+├── frontend/               # React + Vite dashboard
+│   └── src/
+│       ├── components/
+│       └── pages/
+├── packages/
+│   └── contracts/          # Shared TypeScript types
+├── migrations/             # PostgreSQL migrations
+├── services/               # Shared service utilities
+├── docker-compose.yml
+└── pnpm-workspace.yaml
 ```
 
-### 11.5 Agent Service
+---
 
-```bash
-cd backend/agent
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn main:app --reload --port 8001
-```
+## Known Limitations
 
-## 12. Environment Variables
+- LLM-generated fixes are non-deterministic on edge cases. Rule-based parsing runs first to minimize this.
+- Large monorepos with complex dependency graphs may require increased worker memory.
+- Multi-language repos (e.g. Python + Go in the same repo) are not yet fully supported.
+- Third-party API latency (Groq, GitHub) can affect run duration.
 
-### Frontend
+---
 
-```env
-VITE_API_URL=http://localhost:3000
-VITE_SOCKET_URL=http://localhost:3000
-```
+## License
 
-### Gateway
-
-```env
-PORT=3000
-FASTAPI_URL=http://localhost:8001
-FRONTEND_URL=http://localhost:5173
-REDIS_URL=redis://localhost:6379
-SESSION_SECRET=replace_me
-```
-
-### Agent
-
-```env
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
-GOOGLE_API_KEY=
-GITHUB_PAT=
-DATABASE_URL=postgresql://user:pass@localhost:5432/komosis
-REDIS_URL=redis://localhost:6379
-OUTPUT_DIR=/outputs
-AGENT_MAX_RETRIES=5
-AGENT_CONFIDENCE_THRESHOLD=0.70
-ENABLE_KB_LOOKUP=true
-ENABLE_SPECULATIVE_BRANCHES=false
-ENABLE_ADVERSARIAL_TESTS=true
-ENABLE_CAUSAL_GRAPH=true
-ENABLE_PROVENANCE_PASS=true
-```
-
-## 13. Advanced Features (Track-Aligned)
-
-All advanced features are optional and must not break required output contracts.
-
-1. Counterfactual Branch Tournament
-2. Causal Incident Graph
-3. AI Commit Passport (provenance)
-4. Replay Mode
-5. Adaptive model routing
-
-Implementation details: see `COPILOT_BUILD_GUIDE.md` and `IMPLEMENTATION_TASKS.md`.
-
-## 14. Known Limitations
-
-1. Non-deterministic LLM behavior on edge cases.
-2. Third-party API latency can affect runtime bonus.
-3. Large monorepos may require higher worker resources.
-4. Multi-language integration requires tuned sandbox images.
-
-## 15. Submission Checklist
-
-Before submission, verify:
-1. Live deployed dashboard works from clean browser.
-2. Demo video is public and tagged correctly.
-3. README contains required sections and links.
-4. Branch naming and commit prefix checks pass.
-5. `results.json` generated for every run.
-6. No direct push to protected branches.
-
-## 16. Team
-
-- Team Lead: <name>
-- Member 2: <name>
-- Member 3: <name>
-- Member 4: <name>
-
-## 17. License
-
-Hackathon submission repository. Add license as needed.
+MIT
